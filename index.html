@@ -2,13 +2,19 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Ultimate Breakout Game</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
         }
 
         body {
@@ -20,6 +26,7 @@
             min-height: 100vh;
             color: white;
             overflow: hidden;
+            touch-action: none;
         }
 
         .game-container {
@@ -27,9 +34,15 @@
             background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(10px);
             border-radius: 20px;
-            padding: 20px;
+            padding: 10px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
             position: relative;
+            width: 100%;
+            max-width: 820px;
+            height: 100vh;
+            max-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
 
         canvas {
@@ -37,6 +50,9 @@
             border-radius: 10px;
             background: linear-gradient(45deg, #0f0f23, #1a1a2e);
             box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.5);
+            flex: 1;
+            max-width: 100%;
+            height: auto;
         }
 
         .ui {
@@ -44,14 +60,61 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 10px;
-            font-size: 18px;
+            font-size: 16px;
             font-weight: bold;
         }
 
         .controls {
-            margin-top: 15px;
-            font-size: 14px;
+            margin-top: 10px;
+            font-size: 12px;
             opacity: 0.8;
+            line-height: 1.3;
+        }
+
+        .mobile-controls {
+            display: none;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            margin-top: 10px;
+        }
+
+        .control-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 15px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: manipulation;
+            user-select: none;
+            transition: all 0.1s;
+        }
+
+        .control-button:active {
+            background: rgba(255, 255, 255, 0.4);
+            transform: scale(0.95);
+        }
+
+        .control-group {
+            display: flex;
+            gap: 20px;
+        }
+
+        .laser-button {
+            background: linear-gradient(45deg, #00d2d3, #0099cc);
+            font-size: 20px;
+        }
+
+        .pause-button {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            font-size: 16px;
         }
 
         .game-over {
@@ -78,46 +141,47 @@
             font-size: 16px;
             margin-top: 15px;
             transition: transform 0.2s;
+            touch-action: manipulation;
         }
 
-        .btn:hover {
+        .btn:hover, .btn:active {
             transform: scale(1.05);
         }
 
         .wave-indicator {
-            font-size: 16px;
+            font-size: 14px;
             color: #ffd700;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
 
         .power-up-indicator {
-            font-size: 14px;
+            font-size: 12px;
             color: #00ff88;
             margin-bottom: 5px;
-            min-height: 20px;
+            min-height: 18px;
         }
 
         .legend {
-            margin-top: 10px;
-            font-size: 11px;
+            margin-top: 8px;
+            font-size: 10px;
             text-align: left;
             background: rgba(0, 0, 0, 0.3);
-            padding: 8px;
-            border-radius: 8px;
-            max-height: 200px;
+            padding: 6px;
+            border-radius: 6px;
+            max-height: 120px;
             overflow-y: auto;
         }
 
         .legend-item {
-            margin: 2px 0;
+            margin: 1px 0;
             display: flex;
             align-items: center;
         }
 
         .legend-color {
-            width: 12px;
-            height: 12px;
-            margin-right: 6px;
+            width: 10px;
+            height: 10px;
+            margin-right: 4px;
             border-radius: 2px;
         }
 
@@ -125,7 +189,7 @@
             position: absolute;
             top: 20px;
             right: 20px;
-            font-size: 24px;
+            font-size: 20px;
             font-weight: bold;
             color: #ff6b6b;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
@@ -142,9 +206,59 @@
             display: none;
             justify-content: center;
             align-items: center;
-            font-size: 48px;
+            font-size: 36px;
             color: white;
             z-index: 999;
+        }
+
+        /* Mobile-specific styles */
+        @media (max-width: 768px) {
+            .game-container {
+                padding: 5px;
+                border-radius: 0;
+                height: 100vh;
+            }
+
+            .mobile-controls {
+                display: flex;
+            }
+
+            .ui {
+                font-size: 14px;
+            }
+
+            .wave-indicator {
+                font-size: 12px;
+            }
+
+            .power-up-indicator {
+                font-size: 10px;
+            }
+
+            .legend {
+                font-size: 9px;
+                max-height: 80px;
+            }
+
+            .combo-indicator {
+                font-size: 16px;
+                top: 10px;
+                right: 10px;
+            }
+
+            .pause-overlay {
+                font-size: 28px;
+            }
+        }
+
+        @media (max-height: 600px) {
+            .legend {
+                max-height: 60px;
+            }
+
+            .controls {
+                font-size: 10px;
+            }
         }
     </style>
 </head>
@@ -157,9 +271,21 @@
             <div>Lives: <span id="lives">3</span></div>
             <div>Combo: <span id="combo">0</span></div>
         </div>
-        <canvas id="gameCanvas" width="800" height="600"></canvas>
-        <div class="controls">
+        <canvas id="gameCanvas"></canvas>
+
+        <div class="controls" id="desktopControls">
             Use ← → arrow keys or A/D to move • SPACE to shoot laser • P to pause
+        </div>
+
+        <div class="mobile-controls" id="mobileControls">
+            <div class="control-group">
+                <button class="control-button" id="leftBtn">←</button>
+                <button class="control-button" id="rightBtn">→</button>
+            </div>
+            <div class="control-group">
+                <button class="control-button laser-button" id="laserBtn">⚡</button>
+                <button class="control-button pause-button" id="pauseBtn">⏸</button>
+            </div>
         </div>
 
         <div class="legend">
@@ -202,8 +328,32 @@
     </div>
 
     <script>
+        // Device detection
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+                         ('ontouchstart' in window) ||
+                         (navigator.maxTouchPoints > 0);
+
+        // Canvas setup with responsive sizing
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            const container = document.querySelector('.game-container');
+            const containerRect = container.getBoundingClientRect();
+
+            if (isMobile) {
+                canvas.width = Math.min(containerRect.width - 16, 800);
+                canvas.height = Math.min(containerRect.height - 200, 500);
+            } else {
+                canvas.width = 800;
+                canvas.height = 600;
+            }
+        }
+
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // UI elements
         const scoreElement = document.getElementById('score');
         const livesElement = document.getElementById('lives');
         const comboElement = document.getElementById('combo');
@@ -215,6 +365,12 @@
         const maxComboElement = document.getElementById('maxCombo');
         const comboDisplayElement = document.getElementById('comboDisplay');
         const pauseOverlay = document.getElementById('pauseOverlay');
+
+        // Show/hide controls based on device
+        if (isMobile) {
+            document.getElementById('mobileControls').style.display = 'flex';
+            document.getElementById('desktopControls').style.display = 'none';
+        }
 
         // Game state
         let gameRunning = true;
@@ -234,26 +390,30 @@
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
         function playSound(frequency, duration, type = 'sine', volume = 0.1) {
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
+            try {
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
 
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
 
-            oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
-            oscillator.type = type;
+                oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+                oscillator.type = type;
 
-            gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+                gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
 
-            oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + duration);
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + duration);
+            } catch (e) {
+                // Silent fail for audio context issues
+            }
         }
 
         // Paddle
         const paddle = {
-            x: canvas.width / 2 - 60,
-            y: canvas.height - 30,
+            x: 0,
+            y: 0,
             width: 120,
             height: 15,
             speed: 8,
@@ -264,8 +424,8 @@
 
         // Ball
         const ball = {
-            x: canvas.width / 2,
-            y: canvas.height / 2,
+            x: 0,
+            y: 0,
             radius: 8,
             dx: 4,
             dy: -4,
@@ -274,6 +434,16 @@
             trail: [],
             fireBall: false
         };
+
+        // Initialize positions based on canvas size
+        function initializePositions() {
+            paddle.x = canvas.width / 2 - paddle.width / 2;
+            paddle.y = canvas.height - 30;
+            ball.x = canvas.width / 2;
+            ball.y = canvas.height / 2;
+        }
+
+        initializePositions();
 
         // Lasers
         let lasers = [];
@@ -302,13 +472,19 @@
 
         // Bricks
         let bricks = [];
-        const brickRows = 6;
-        const brickCols = 10;
-        const brickWidth = 75;
-        const brickHeight = 20;
-        const brickPadding = 5;
-        const brickOffsetTop = 60;
-        const brickOffsetLeft = 35;
+        const brickRows = isMobile ? 5 : 6;
+        const brickCols = isMobile ? 8 : 10;
+        let brickWidth, brickHeight, brickPadding, brickOffsetTop, brickOffsetLeft;
+
+        function calculateBrickDimensions() {
+            brickWidth = (canvas.width - 70) / brickCols;
+            brickHeight = isMobile ? 18 : 20;
+            brickPadding = 5;
+            brickOffsetTop = 60;
+            brickOffsetLeft = 35;
+        }
+
+        calculateBrickDimensions();
 
         // Brick types
         const brickTypes = {
@@ -321,6 +497,12 @@
 
         // Input handling
         const keys = {};
+        let touchControls = {
+            left: false,
+            right: false
+        };
+
+        // Desktop controls
         document.addEventListener('keydown', (e) => {
             keys[e.key] = true;
             if (e.key === ' ') {
@@ -333,9 +515,92 @@
         });
         document.addEventListener('keyup', (e) => keys[e.key] = false);
 
+        // Mobile controls
+        if (isMobile) {
+            // Touch controls for movement
+            let touchStartX = 0;
+            let touchCurrentX = 0;
+            let isTouching = false;
+
+            canvas.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                touchStartX = touch.clientX;
+                touchCurrentX = touch.clientX;
+                isTouching = true;
+            });
+
+            canvas.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                if (isTouching) {
+                    const touch = e.touches[0];
+                    touchCurrentX = touch.clientX;
+
+                    const deltaX = touchCurrentX - touchStartX;
+                    const sensitivity = 2;
+                    paddle.x += deltaX * sensitivity;
+
+                    // Keep paddle within bounds
+                    paddle.x = Math.max(0, Math.min(canvas.width - paddle.width, paddle.x));
+
+                    touchStartX = touchCurrentX;
+                }
+            });
+
+            canvas.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                isTouching = false;
+            });
+
+            // Button controls
+            const leftBtn = document.getElementById('leftBtn');
+            const rightBtn = document.getElementById('rightBtn');
+            const laserBtn = document.getElementById('laserBtn');
+            const pauseBtn = document.getElementById('pauseBtn');
+
+            // Movement buttons
+            leftBtn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                touchControls.left = true;
+            });
+            leftBtn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                touchControls.left = false;
+            });
+
+            rightBtn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                touchControls.right = true;
+            });
+            rightBtn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                touchControls.right = false;
+            });
+
+            // Laser button
+            laserBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                shootLaser();
+            });
+
+            // Pause button
+            pauseBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                togglePause();
+            });
+
+            // Prevent context menu on long press
+            document.addEventListener('contextmenu', (e) => e.preventDefault());
+        }
+
         function togglePause() {
             gamePaused = !gamePaused;
             pauseOverlay.style.display = gamePaused ? 'flex' : 'none';
+
+            // Resume audio context if needed
+            if (!gamePaused && audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
         }
 
         function createParticles(x, y, color, count = 10) {
@@ -395,6 +660,8 @@
 
         function createBricks() {
             bricks = [];
+            calculateBrickDimensions();
+
             for (let r = 0; r < brickRows; r++) {
                 for (let c = 0; c < brickCols; c++) {
                     let type = 'normal';
@@ -524,11 +791,11 @@
             let status = '';
             if (activePowerUps.widePaddle > Date.now()) {
                 const remaining = Math.ceil((activePowerUps.widePaddle - Date.now()) / 1000);
-                status += `Wide Paddle: ${remaining}s `;
+                status += `Wide: ${remaining}s `;
             }
             if (activePowerUps.bigBall > Date.now()) {
                 const remaining = Math.ceil((activePowerUps.bigBall - Date.now()) / 1000);
-                status += `Big Ball: ${remaining}s `;
+                status += `Big: ${remaining}s `;
             }
             if (activePowerUps.laser > Date.now()) {
                 const remaining = Math.ceil((activePowerUps.laser - Date.now()) / 1000);
@@ -536,10 +803,10 @@
             }
             if (activePowerUps.fireBall > Date.now()) {
                 const remaining = Math.ceil((activePowerUps.fireBall - Date.now()) / 1000);
-                status += `Fire Ball: ${remaining}s `;
+                status += `Fire: ${remaining}s `;
             }
             if (activePowerUps.multiball.length > 0) {
-                status += `Multiball Active `;
+                status += `Multi `;
             }
             powerUpStatusElement.textContent = status;
         }
@@ -823,7 +1090,7 @@
                     // Show hit count for multi-hit bricks
                     if (brick.maxHits > 1 && brick.type !== 'unbreakable') {
                         ctx.fillStyle = '#fff';
-                        ctx.font = '12px Arial';
+                        ctx.font = `${isMobile ? '10px' : '12px'} Arial`;
                         ctx.textAlign = 'center';
                         ctx.fillText(brick.hits, brick.x + brick.width/2, brick.y + brick.height/2 + 4);
                     }
@@ -869,19 +1136,31 @@
 
                 // Draw symbol
                 ctx.fillStyle = '#fff';
-                ctx.font = 'bold 16px Arial';
+                ctx.font = `bold ${isMobile ? '14px' : '16px'} Arial`;
                 ctx.textAlign = 'center';
                 ctx.fillText(powerUp.symbol, powerUp.x + powerUp.width/2, powerUp.y + powerUp.height/2 + 6);
             });
         }
 
         function updatePaddle() {
+            // Desktop controls
             if ((keys['ArrowLeft'] || keys['a'] || keys['A']) && paddle.x > 0) {
                 paddle.x -= paddle.speed;
             }
             if ((keys['ArrowRight'] || keys['d'] || keys['D']) && paddle.x < canvas.width - paddle.width) {
                 paddle.x += paddle.speed;
             }
+
+            // Mobile touch controls
+            if (touchControls.left && paddle.x > 0) {
+                paddle.x -= paddle.speed;
+            }
+            if (touchControls.right && paddle.x < canvas.width - paddle.width) {
+                paddle.x += paddle.speed;
+            }
+
+            // Keep paddle within bounds
+            paddle.x = Math.max(0, Math.min(canvas.width - paddle.width, paddle.x));
         }
 
         function handleBallCollision(ballObj) {
@@ -1069,10 +1348,16 @@
                 fireBall: 0
             };
 
+            // Reset touch controls
+            touchControls = {
+                left: false,
+                right: false
+            };
+
             createBricks();
             resetBall();
+            initializePositions();
 
-            paddle.x = canvas.width / 2 - 60;
             paddle.trail = [];
         }
 
@@ -1107,6 +1392,51 @@
             draw();
             requestAnimationFrame(gameLoop);
         }
+
+        // Handle orientation change for mobile
+        window.addEventListener('orientationchange', () => {
+            setTimeout(() => {
+                resizeCanvas();
+                initializePositions();
+                createBricks();
+            }, 100);
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+            initializePositions();
+        });
+
+        // Prevent scrolling on mobile
+        document.body.addEventListener('touchstart', (e) => {
+            if (e.target === canvas) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        document.body.addEventListener('touchend', (e) => {
+            if (e.target === canvas) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        document.body.addEventListener('touchmove', (e) => {
+            if (e.target === canvas) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        // Initialize audio context on first user interaction
+        function initAudio() {
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+        }
+
+        document.addEventListener('touchstart', initAudio, { once: true });
+        document.addEventListener('click', initAudio, { once: true });
+        document.addEventListener('keydown', initAudio, { once: true });
 
         // Initialize game
         createBricks();
