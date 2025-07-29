@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultimate Breakout Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: white;
+            overflow: hidden;
+        }
+
+        .game-container {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+
+        canvas {
+            border: 3px solid #fff;
+            border-radius: 10px;
+            background: linear-gradient(45deg, #0f0f23, #1a1a2e);
+            box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.5);
+        }
+
+        .ui {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .controls {
+            margin-top: 15px;
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        .game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            display: none;
+            z-index: 1000;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 15px;
+            transition: transform 0.2s;
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+        }
+
+        .wave-indicator {
+            font-size: 16px;
+            color: #ffd700;
+            margin-bottom: 10px;
+        }
+
+        .power-up-indicator {
+            font-size: 14px;
+            color: #00ff88;
+            margin-bottom: 5px;
+            min-height: 20px;
+        }
+
+        .legend {
+            margin-top: 10px;
+            font-size: 11px;
+            text-align: left;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 8px;
+            border-radius: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .legend-item {
+            margin: 2px 0;
+            display: flex;
+            align-items: center;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            margin-right: 6px;
+            border-radius: 2px;
+        }
+
+        .combo-indicator {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #ff6b6b;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            z-index: 100;
+        }
+
+        .pause-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            font-size: 48px;
+            color: white;
+            z-index: 999;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="wave-indicator">Wave: <span id="wave">1</span></div>
+        <div class="power-up-indicator" id="powerUpStatus"></div>
+        <div class="ui">
+            <div>Score: <span id="score">0</span></div>
+            <div>Lives: <span id="lives">3</span></div>
+            <div>Combo: <span id="combo">0</span></div>
+        </div>
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        <div class="controls">
+            Use ← → arrow keys or A/D to move • SPACE to shoot laser • P to pause
+        </div>
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background: #ff6b6b;"></div>
+                <span>Normal (10pts)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #ffd700;"></div>
+                <span>Strong (25pts, 2 hits)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #c0c0c0;"></div>
+                <span>Metal (50pts, 3 hits)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #ff4757;"></div>
+                <span>Explosive (75pts, destroys nearby)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #2f3542;"></div>
+                <span>Unbreakable (blocks balls)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #00ff88;"></div>
+                <span>🎁 Power-ups: = (Wide) O (Big) + (Life) * (Multi) ⚡ (Laser) 🔥 (Fire)</span>
+            </div>
+        </div>
+
+        <div class="combo-indicator" id="comboDisplay" style="display: none;"></div>
+        <div class="pause-overlay" id="pauseOverlay">PAUSED</div>
+
+        <div class="game-over" id="gameOver">
+            <h2>Game Over!</h2>
+            <p>Final Score: <span id="finalScore">0</span></p>
+            <p>Wave Reached: <span id="finalWave">1</span></p>
+            <p>Max Combo: <span id="maxCombo">0</span></p>
+            <button class="btn" onclick="restartGame()">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        const livesElement = document.getElementById('lives');
+        const comboElement = document.getElementById('combo');
+        const waveElement = document.getElementById('wave');
+        const powerUpStatusElement = document.getElementById('powerUpStatus');
+        const gameOverDiv = document.getElementById('gameOver');
+        const finalScoreElement = document.getElementById('finalScore');
+        const finalWaveElement = document.getElementById('finalWave');
+        const maxComboElement = document.getElementById('maxCombo');
+        const comboDisplayElement = document.getElementById('comboDisplay');
+        const pauseOverlay = document.getElementById('pauseOverlay');
+
+        // Game state
+        let gameRunning = true;
+        let gamePaused = false;
+        let score = 0;
+        let lives = 3;
+        let wave = 1;
+        let combo = 0;
+        let maxCombo = 0;
+        let lastHitTime = 0;
+
+        // Particles system
+        let particles = [];
+        let explosions = [];
+
+        // Sound effects using Web Audio API
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSound(frequency, duration, type = 'sine', volume = 0.1) {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+            oscillator.type = type;
+
+            gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + duration);
+        }
+
+        // Paddle
+        const paddle = {
+            x: canvas.width / 2 - 60,
+            y: canvas.height - 30,
+            width: 120,
+            height: 15,
+            speed: 8,
+            originalWidth: 120,
+            color: '#fff',
+            trail: []
+        };
+
+        // Ball
+        const ball = {
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            radius: 8,
+            dx: 4,
+            dy: -4,
+            speed: 4,
+            originalRadius: 8,
+            trail: [],
+            fireBall: false
+        };
+
+        // Lasers
+        let lasers = [];
+        let canShootLaser = false;
+        let laserCooldown = 0;
+
+        // Power-ups
+        let powerUps = [];
+        let activePowerUps = {
+            widePaddle: 0,
+            bigBall: 0,
+            extraLife: false,
+            multiball: [],
+            laser: 0,
+            fireBall: 0
+        };
+
+        const powerUpTypes = [
+            { type: 'widePaddle', color: '#ff6b6b', symbol: '=', duration: 15000 },
+            { type: 'bigBall', color: '#4ecdc4', symbol: 'O', duration: 12000 },
+            { type: 'extraLife', color: '#ffd700', symbol: '+', duration: 0 },
+            { type: 'multiball', color: '#ff9ff3', symbol: '*', duration: 0 },
+            { type: 'laser', color: '#00d2d3', symbol: '⚡', duration: 20000 },
+            { type: 'fireBall', color: '#ff4757', symbol: '🔥', duration: 15000 }
+        ];
+
+        // Bricks
+        let bricks = [];
+        const brickRows = 6;
+        const brickCols = 10;
+        const brickWidth = 75;
+        const brickHeight = 20;
+        const brickPadding = 5;
+        const brickOffsetTop = 60;
+        const brickOffsetLeft = 35;
+
+        // Brick types
+        const brickTypes = {
+            normal: { color: '#ff6b6b', hits: 1, points: 10 },
+            strong: { color: '#ffd700', hits: 2, points: 25 },
+            metal: { color: '#c0c0c0', hits: 3, points: 50 },
+            explosive: { color: '#ff4757', hits: 1, points: 75 },
+            unbreakable: { color: '#2f3542', hits: -1, points: 0 }
+        };
+
+        // Input handling
+        const keys = {};
+        document.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+            if (e.key === ' ') {
+                e.preventDefault();
+                shootLaser();
+            }
+            if (e.key === 'p' || e.key === 'P') {
+                togglePause();
+            }
+        });
+        document.addEventListener('keyup', (e) => keys[e.key] = false);
+
+        function togglePause() {
+            gamePaused = !gamePaused;
+            pauseOverlay.style.display = gamePaused ? 'flex' : 'none';
+        }
+
+        function createParticles(x, y, color, count = 10) {
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    dx: (Math.random() - 0.5) * 8,
+                    dy: (Math.random() - 0.5) * 8,
+                    color: color,
+                    life: 1,
+                    decay: 0.02 + Math.random() * 0.02,
+                    size: 2 + Math.random() * 3
+                });
+            }
+        }
+
+        function createExplosion(x, y) {
+            explosions.push({
+                x: x,
+                y: y,
+                radius: 0,
+                maxRadius: 60,
+                life: 1,
+                decay: 0.05
+            });
+
+            // Create shockwave particles
+            for (let i = 0; i < 20; i++) {
+                const angle = (i / 20) * Math.PI * 2;
+                particles.push({
+                    x: x,
+                    y: y,
+                    dx: Math.cos(angle) * 6,
+                    dy: Math.sin(angle) * 6,
+                    color: '#ff4757',
+                    life: 1,
+                    decay: 0.03,
+                    size: 3
+                });
+            }
+        }
+
+        function shootLaser() {
+            if (canShootLaser && laserCooldown <= 0) {
+                lasers.push({
+                    x: paddle.x + paddle.width / 2 - 2,
+                    y: paddle.y,
+                    width: 4,
+                    height: 20,
+                    dy: -15
+                });
+                laserCooldown = 15; // Cooldown frames
+                playSound(1000, 0.1, 'square', 0.05);
+            }
+        }
+
+        function createBricks() {
+            bricks = [];
+            for (let r = 0; r < brickRows; r++) {
+                for (let c = 0; c < brickCols; c++) {
+                    let type = 'normal';
+
+                    // Add variety based on wave and position
+                    if (wave >= 2 && Math.random() < 0.25) {
+                        type = 'strong';
+                    }
+                    if (wave >= 3 && Math.random() < 0.15) {
+                        type = 'metal';
+                    }
+                    if (wave >= 4 && Math.random() < 0.1) {
+                        type = 'explosive';
+                    }
+                    if (wave >= 5 && Math.random() < 0.05) {
+                        type = 'unbreakable';
+                    }
+
+                    const brickType = brickTypes[type];
+                    bricks.push({
+                        x: c * (brickWidth + brickPadding) + brickOffsetLeft,
+                        y: r * (brickHeight + brickPadding) + brickOffsetTop,
+                        width: brickWidth,
+                        height: brickHeight,
+                        type: type,
+                        color: brickType.color,
+                        maxHits: brickType.hits,
+                        hits: brickType.hits,
+                        points: brickType.points,
+                        visible: true
+                    });
+                }
+            }
+        }
+
+        function createPowerUp(x, y) {
+            if (Math.random() < 0.25) { // 25% chance for power-up
+                const powerUpType = powerUpTypes[Math.floor(Math.random() * powerUpTypes.length)];
+                powerUps.push({
+                    x: x,
+                    y: y,
+                    width: 20,
+                    height: 20,
+                    dy: 2,
+                    type: powerUpType.type,
+                    color: powerUpType.color,
+                    symbol: powerUpType.symbol,
+                    duration: powerUpType.duration,
+                    pulse: 0
+                });
+            }
+        }
+
+        function activatePowerUp(powerUp) {
+            playSound(800, 0.2, 'square');
+            createParticles(powerUp.x + powerUp.width/2, powerUp.y + powerUp.height/2, powerUp.color, 15);
+
+            switch (powerUp.type) {
+                case 'widePaddle':
+                    paddle.width = paddle.originalWidth * 1.5;
+                    activePowerUps.widePaddle = Date.now() + powerUp.duration;
+                    break;
+
+                case 'bigBall':
+                    ball.radius = ball.originalRadius * 1.5;
+                    activePowerUps.bigBall = Date.now() + powerUp.duration;
+                    break;
+
+                case 'extraLife':
+                    lives++;
+                    livesElement.textContent = lives;
+                    break;
+
+                case 'multiball':
+                    for (let i = 0; i < 2; i++) {
+                        activePowerUps.multiball.push({
+                            x: ball.x + (Math.random() - 0.5) * 100,
+                            y: ball.y + (Math.random() - 0.5) * 100,
+                            radius: ball.radius,
+                            dx: (Math.random() - 0.5) * ball.speed * 2,
+                            dy: Math.random() > 0.5 ? ball.speed : -ball.speed,
+                            trail: []
+                        });
+                    }
+                    break;
+
+                case 'laser':
+                    canShootLaser = true;
+                    activePowerUps.laser = Date.now() + powerUp.duration;
+                    break;
+
+                case 'fireBall':
+                    ball.fireBall = true;
+                    activePowerUps.fireBall = Date.now() + powerUp.duration;
+                    break;
+            }
+            updatePowerUpDisplay();
+        }
+
+        function updateCombo() {
+            const now = Date.now();
+            if (now - lastHitTime > 2000) {
+                combo = 0;
+            }
+            combo++;
+            lastHitTime = now;
+
+            if (combo > maxCombo) {
+                maxCombo = combo;
+            }
+
+            comboElement.textContent = combo;
+
+            // Show combo display for high combos
+            if (combo >= 5) {
+                comboDisplayElement.textContent = `${combo}x COMBO!`;
+                comboDisplayElement.style.display = 'block';
+                comboDisplayElement.style.color = combo >= 10 ? '#ff4757' : '#ffd700';
+
+                setTimeout(() => {
+                    comboDisplayElement.style.display = 'none';
+                }, 1500);
+            }
+        }
+
+        function updatePowerUpDisplay() {
+            let status = '';
+            if (activePowerUps.widePaddle > Date.now()) {
+                const remaining = Math.ceil((activePowerUps.widePaddle - Date.now()) / 1000);
+                status += `Wide Paddle: ${remaining}s `;
+            }
+            if (activePowerUps.bigBall > Date.now()) {
+                const remaining = Math.ceil((activePowerUps.bigBall - Date.now()) / 1000);
+                status += `Big Ball: ${remaining}s `;
+            }
+            if (activePowerUps.laser > Date.now()) {
+                const remaining = Math.ceil((activePowerUps.laser - Date.now()) / 1000);
+                status += `Laser: ${remaining}s `;
+            }
+            if (activePowerUps.fireBall > Date.now()) {
+                const remaining = Math.ceil((activePowerUps.fireBall - Date.now()) / 1000);
+                status += `Fire Ball: ${remaining}s `;
+            }
+            if (activePowerUps.multiball.length > 0) {
+                status += `Multiball Active `;
+            }
+            powerUpStatusElement.textContent = status;
+        }
+
+        function updatePowerUps() {
+            // Update power-up positions and effects
+            powerUps.forEach((powerUp, index) => {
+                powerUp.y += powerUp.dy;
+                powerUp.pulse += 0.1;
+
+                // Check collision with paddle
+                if (powerUp.y + powerUp.height > paddle.y &&
+                    powerUp.x + powerUp.width > paddle.x &&
+                    powerUp.x < paddle.x + paddle.width) {
+                    activatePowerUp(powerUp);
+                    powerUps.splice(index, 1);
+                }
+
+                // Remove if off screen
+                if (powerUp.y > canvas.height) {
+                    powerUps.splice(index, 1);
+                }
+            });
+
+            // Check power-up expiration
+            if (activePowerUps.widePaddle > 0 && activePowerUps.widePaddle < Date.now()) {
+                paddle.width = paddle.originalWidth;
+                activePowerUps.widePaddle = 0;
+            }
+
+            if (activePowerUps.bigBall > 0 && activePowerUps.bigBall < Date.now()) {
+                ball.radius = ball.originalRadius;
+                activePowerUps.bigBall = 0;
+            }
+
+            if (activePowerUps.laser > 0 && activePowerUps.laser < Date.now()) {
+                canShootLaser = false;
+                activePowerUps.laser = 0;
+            }
+
+            if (activePowerUps.fireBall > 0 && activePowerUps.fireBall < Date.now()) {
+                ball.fireBall = false;
+                activePowerUps.fireBall = 0;
+            }
+
+            updatePowerUpDisplay();
+        }
+
+        function updateTrails() {
+            // Update ball trail
+            ball.trail.push({ x: ball.x, y: ball.y });
+            if (ball.trail.length > 10) ball.trail.shift();
+
+            // Update multiball trails
+            activePowerUps.multiball.forEach(extraBall => {
+                extraBall.trail.push({ x: extraBall.x, y: extraBall.y });
+                if (extraBall.trail.length > 8) extraBall.trail.shift();
+            });
+
+            // Update paddle trail
+            paddle.trail.push({ x: paddle.x + paddle.width/2, y: paddle.y });
+            if (paddle.trail.length > 5) paddle.trail.shift();
+        }
+
+        function updateParticles() {
+            particles.forEach((particle, index) => {
+                particle.x += particle.dx;
+                particle.y += particle.dy;
+                particle.life -= particle.decay;
+                particle.dy += 0.1; // Gravity
+
+                if (particle.life <= 0) {
+                    particles.splice(index, 1);
+                }
+            });
+
+            explosions.forEach((explosion, index) => {
+                explosion.radius += 2;
+                explosion.life -= explosion.decay;
+
+                if (explosion.life <= 0 || explosion.radius >= explosion.maxRadius) {
+                    explosions.splice(index, 1);
+                }
+            });
+        }
+
+        function updateLasers() {
+            if (laserCooldown > 0) laserCooldown--;
+
+            lasers.forEach((laser, laserIndex) => {
+                laser.y += laser.dy;
+
+                // Remove lasers that go off screen
+                if (laser.y < 0) {
+                    lasers.splice(laserIndex, 1);
+                    return;
+                }
+
+                // Check brick collisions
+                bricks.forEach((brick, brickIndex) => {
+                    if (brick.visible && brick.type !== 'unbreakable' &&
+                        laser.x < brick.x + brick.width &&
+                        laser.x + laser.width > brick.x &&
+                        laser.y < brick.y + brick.height &&
+                        laser.y + laser.height > brick.y) {
+
+                        // Remove laser
+                        lasers.splice(laserIndex, 1);
+
+                        // Damage brick
+                        hitBrick(brick);
+                    }
+                });
+            });
+        }
+
+        function hitBrick(brick) {
+            if (brick.type === 'unbreakable') return;
+
+            updateCombo();
+
+            if (brick.type === 'explosive') {
+                // Explosive brick destroys nearby bricks
+                createExplosion(brick.x + brick.width/2, brick.y + brick.height/2);
+                playSound(300, 0.3, 'square', 0.15);
+
+                bricks.forEach(nearbyBrick => {
+                    const dx = nearbyBrick.x + nearbyBrick.width/2 - (brick.x + brick.width/2);
+                    const dy = nearbyBrick.y + nearbyBrick.height/2 - (brick.y + brick.height/2);
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance < 80 && nearbyBrick.visible && nearbyBrick.type !== 'unbreakable') {
+                        nearbyBrick.visible = false;
+                        score += nearbyBrick.points + (combo * 5);
+                        createParticles(nearbyBrick.x + nearbyBrick.width/2,
+                                      nearbyBrick.y + nearbyBrick.height/2,
+                                      nearbyBrick.color, 8);
+                    }
+                });
+
+                brick.visible = false;
+                score += brick.points + (combo * 5);
+            } else {
+                brick.hits--;
+
+                if (brick.hits <= 0) {
+                    brick.visible = false;
+                    score += brick.points + (combo * 5);
+                    createPowerUp(brick.x + brick.width/2, brick.y + brick.height/2);
+                    createParticles(brick.x + brick.width/2, brick.y + brick.height/2, brick.color, 12);
+                    playSound(600 + (brick.points * 5), 0.15);
+                } else {
+                    playSound(500, 0.1);
+                    createParticles(brick.x + brick.width/2, brick.y + brick.height/2, brick.color, 5);
+                }
+            }
+
+            scoreElement.textContent = score;
+        }
+
+        function drawTrails() {
+            // Draw ball trail
+            ball.trail.forEach((point, index) => {
+                const alpha = index / ball.trail.length;
+                ctx.globalAlpha = alpha * 0.5;
+                ctx.beginPath();
+                ctx.arc(point.x, point.y, ball.radius * alpha, 0, Math.PI * 2);
+                ctx.fillStyle = ball.fireBall ? '#ff4757' : '#fff';
+                ctx.fill();
+            });
+
+            // Draw multiball trails
+            activePowerUps.multiball.forEach(extraBall => {
+                extraBall.trail.forEach((point, index) => {
+                    const alpha = index / extraBall.trail.length;
+                    ctx.globalAlpha = alpha * 0.3;
+                    ctx.beginPath();
+                    ctx.arc(point.x, point.y, extraBall.radius * alpha, 0, Math.PI * 2);
+                    ctx.fillStyle = '#ff9ff3';
+                    ctx.fill();
+                });
+            });
+
+            ctx.globalAlpha = 1;
+        }
+
+        function drawParticles() {
+            particles.forEach(particle => {
+                ctx.globalAlpha = particle.life;
+                ctx.fillStyle = particle.color;
+                ctx.beginPath();
+                ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            explosions.forEach(explosion => {
+                ctx.globalAlpha = explosion.life * 0.3;
+                ctx.strokeStyle = '#ff4757';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(explosion.x, explosion.y, explosion.radius, 0, Math.PI * 2);
+                ctx.stroke();
+            });
+
+            ctx.globalAlpha = 1;
+        }
+
+        function drawLasers() {
+            ctx.fillStyle = '#00d2d3';
+            ctx.shadowColor = '#00d2d3';
+            ctx.shadowBlur = 10;
+
+            lasers.forEach(laser => {
+                ctx.fillRect(laser.x, laser.y, laser.width, laser.height);
+            });
+
+            ctx.shadowBlur = 0;
+        }
+
+        function drawPaddle() {
+            // Draw paddle trail
+            paddle.trail.forEach((point, index) => {
+                const alpha = index / paddle.trail.length;
+                ctx.globalAlpha = alpha * 0.2;
+                ctx.fillStyle = paddle.color;
+                ctx.fillRect(point.x - paddle.width/2, point.y, paddle.width, paddle.height);
+            });
+
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = canShootLaser ? '#00d2d3' : '#fff';
+            ctx.shadowColor = canShootLaser ? '#00d2d3' : '#fff';
+            ctx.shadowBlur = 10;
+            ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
+            ctx.shadowBlur = 0;
+        }
+
+        function drawBall() {
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+            ctx.fillStyle = ball.fireBall ? '#ff4757' : '#fff';
+            ctx.shadowColor = ball.fireBall ? '#ff4757' : '#fff';
+            ctx.shadowBlur = ball.fireBall ? 20 : 15;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            // Create fire particles for fire ball
+            if (ball.fireBall) {
+                createParticles(ball.x, ball.y, '#ff4757', 2);
+            }
+
+            // Draw multiball
+            activePowerUps.multiball.forEach(extraBall => {
+                ctx.beginPath();
+                ctx.arc(extraBall.x, extraBall.y, extraBall.radius, 0, Math.PI * 2);
+                ctx.fillStyle = '#ff9ff3';
+                ctx.shadowBlur = 10;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            });
+        }
+
+        function drawBricks() {
+            bricks.forEach(brick => {
+                if (brick.visible) {
+                    // Darken brick based on damage
+                    const alpha = brick.hits / brick.maxHits;
+                    ctx.fillStyle = brick.color;
+                    ctx.globalAlpha = brick.type === 'unbreakable' ? 1 : (0.3 + (alpha * 0.7));
+                    ctx.shadowColor = brick.color;
+                    ctx.shadowBlur = 5;
+                    ctx.fillRect(brick.x, brick.y, brick.width, brick.height);
+                    ctx.shadowBlur = 0;
+                    ctx.globalAlpha = 1;
+
+                    // Add highlight effect
+                    if (brick.type !== 'unbreakable') {
+                        ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.3})`;
+                        ctx.fillRect(brick.x, brick.y, brick.width, brick.height / 3);
+                    }
+
+                    // Show hit count for multi-hit bricks
+                    if (brick.maxHits > 1 && brick.type !== 'unbreakable') {
+                        ctx.fillStyle = '#fff';
+                        ctx.font = '12px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.fillText(brick.hits, brick.x + brick.width/2, brick.y + brick.height/2 + 4);
+                    }
+
+                    // Special effects for special bricks
+                    if (brick.type === 'explosive') {
+                        // Pulsing effect
+                        const pulse = Math.sin(Date.now() * 0.01) * 0.5 + 0.5;
+                        ctx.globalAlpha = 0.5 + pulse * 0.3;
+                        ctx.strokeStyle = '#fff';
+                        ctx.lineWidth = 2;
+                        ctx.strokeRect(brick.x - 2, brick.y - 2, brick.width + 4, brick.height + 4);
+                        ctx.globalAlpha = 1;
+                    }
+
+                    if (brick.type === 'unbreakable') {
+                        // Diagonal lines pattern
+                        ctx.strokeStyle = '#555';
+                        ctx.lineWidth = 1;
+                        for (let i = 0; i < brick.width; i += 10) {
+                            ctx.beginPath();
+                            ctx.moveTo(brick.x + i, brick.y);
+                            ctx.lineTo(brick.x + i + brick.height, brick.y + brick.height);
+                            ctx.stroke();
+                        }
+                    }
+                }
+            });
+        }
+
+        function drawPowerUps() {
+            powerUps.forEach(powerUp => {
+                const pulseScale = 1 + Math.sin(powerUp.pulse) * 0.2;
+                const size = powerUp.width * pulseScale;
+
+                ctx.fillStyle = powerUp.color;
+                ctx.shadowColor = powerUp.color;
+                ctx.shadowBlur = 8;
+                ctx.fillRect(powerUp.x - (size - powerUp.width) / 2,
+                           powerUp.y - (size - powerUp.height) / 2,
+                           size, size);
+                ctx.shadowBlur = 0;
+
+                // Draw symbol
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 16px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(powerUp.symbol, powerUp.x + powerUp.width/2, powerUp.y + powerUp.height/2 + 6);
+            });
+        }
+
+        function updatePaddle() {
+            if ((keys['ArrowLeft'] || keys['a'] || keys['A']) && paddle.x > 0) {
+                paddle.x -= paddle.speed;
+            }
+            if ((keys['ArrowRight'] || keys['d'] || keys['D']) && paddle.x < canvas.width - paddle.width) {
+                paddle.x += paddle.speed;
+            }
+        }
+
+        function handleBallCollision(ballObj) {
+            ballObj.x += ballObj.dx;
+            ballObj.y += ballObj.dy;
+
+            // Wall collisions
+            if (ballObj.x + ballObj.radius > canvas.width || ballObj.x - ballObj.radius < 0) {
+                ballObj.dx = -ballObj.dx;
+                playSound(400, 0.1);
+                createParticles(ballObj.x, ballObj.y, '#fff', 5);
+            }
+            if (ballObj.y - ballObj.radius < 0) {
+                ballObj.dy = -ballObj.dy;
+                playSound(400, 0.1);
+                createParticles(ballObj.x, ballObj.y, '#fff', 5);
+            }
+
+            // Bottom wall
+            if (ballObj.y + ballObj.radius > canvas.height) {
+                return false; // Ball is lost
+            }
+
+            // Paddle collision
+            if (ballObj.y + ballObj.radius > paddle.y &&
+                ballObj.x > paddle.x && ballObj.x < paddle.x + paddle.width &&
+                ballObj.dy > 0) {
+
+                let hitPos = (ballObj.x - paddle.x) / paddle.width;
+                ballObj.dx = (hitPos - 0.5) * ballObj.speed * 2;
+                ballObj.dy = -Math.abs(ballObj.dy);
+                playSound(300, 0.1);
+                createParticles(ballObj.x, paddle.y, '#fff', 8);
+            }
+
+            // Brick collisions
+            bricks.forEach(brick => {
+                if (brick.visible &&
+                    ballObj.x + ballObj.radius > brick.x &&
+                    ballObj.x - ballObj.radius < brick.x + brick.width &&
+                    ballObj.y + ballObj.radius > brick.y &&
+                    ballObj.y - ballObj.radius < brick.y + brick.height) {
+
+                    if (brick.type === 'unbreakable') {
+                        // Bounce off unbreakable bricks
+                        ballObj.dy = -ballObj.dy;
+                        playSound(200, 0.1);
+                        createParticles(ballObj.x, ballObj.y, '#888', 5);
+                    } else {
+                        // Fire ball destroys bricks instantly
+                        if (ballObj.fireBall || ball.fireBall) {
+                            brick.hits = 1; // Force destruction
+                        }
+
+                        ballObj.dy = -ballObj.dy;
+                        hitBrick(brick);
+                    }
+                }
+            });
+
+            return true; // Ball is still in play
+        }
+
+        function updateBall() {
+            // Handle main ball
+            if (!handleBallCollision(ball)) {
+                lives--;
+                livesElement.textContent = lives;
+                playSound(200, 0.5);
+                createParticles(ball.x, canvas.height, '#ff0000', 20);
+
+                if (lives <= 0) {
+                    gameOver();
+                } else {
+                    resetBall();
+                }
+            }
+
+            // Handle multiball
+            activePowerUps.multiball = activePowerUps.multiball.filter(extraBall => {
+                return handleBallCollision(extraBall);
+            });
+
+            // Check if all destructible bricks are destroyed
+            const destructibleBricks = bricks.filter(brick =>
+                brick.visible && brick.type !== 'unbreakable'
+            );
+
+            if (destructibleBricks.length === 0) {
+                nextWave();
+            }
+        }
+
+        function resetBall() {
+            ball.x = canvas.width / 2;
+            ball.y = canvas.height / 2;
+            ball.dx = (Math.random() > 0.5 ? 1 : -1) * ball.speed;
+            ball.dy = -ball.speed;
+            ball.trail = [];
+
+            // Reset combo on ball loss
+            combo = 0;
+            comboElement.textContent = combo;
+
+            // Clear multiball
+            activePowerUps.multiball = [];
+        }
+
+        function nextWave() {
+            wave++;
+            waveElement.textContent = wave;
+            playSound(800, 0.3, 'sawtooth');
+            createParticles(canvas.width/2, canvas.height/2, '#ffd700', 30);
+
+            // Increase difficulty
+            ball.speed += 0.5;
+            ball.dx = ball.dx > 0 ? ball.speed : -ball.speed;
+            ball.dy = ball.dy > 0 ? ball.speed : -ball.speed;
+            paddle.speed += 0.5;
+
+            // Add bonus points
+            score += wave * 100 + (combo * 50);
+            scoreElement.textContent = score;
+
+            createBricks();
+            resetBall();
+
+            // Clear power-ups and lasers
+            powerUps = [];
+            lasers = [];
+        }
+
+        function gameOver() {
+            gameRunning = false;
+            finalScoreElement.textContent = score;
+            finalWaveElement.textContent = wave;
+            maxComboElement.textContent = maxCombo;
+            gameOverDiv.style.display = 'block';
+            playSound(150, 1, 'square');
+
+            // Final explosion effect
+            for (let i = 0; i < 50; i++) {
+                createParticles(canvas.width/2 + (Math.random() - 0.5) * 200,
+                              canvas.height/2 + (Math.random() - 0.5) * 200,
+                              '#ff0000', 1);
+            }
+        }
+
+        function restartGame() {
+            gameRunning = true;
+            gamePaused = false;
+            score = 0;
+            lives = 3;
+            wave = 1;
+            combo = 0;
+            maxCombo = 0;
+            ball.speed = 4;
+            ball.radius = ball.originalRadius;
+            ball.fireBall = false;
+            paddle.speed = 8;
+            paddle.width = paddle.originalWidth;
+            canShootLaser = false;
+            laserCooldown = 0;
+
+            scoreElement.textContent = score;
+            livesElement.textContent = lives;
+            waveElement.textContent = wave;
+            comboElement.textContent = combo;
+            powerUpStatusElement.textContent = '';
+            gameOverDiv.style.display = 'none';
+            pauseOverlay.style.display = 'none';
+            comboDisplayElement.style.display = 'none';
+
+            // Reset power-ups
+            powerUps = [];
+            lasers = [];
+            particles = [];
+            explosions = [];
+            activePowerUps = {
+                widePaddle: 0,
+                bigBall: 0,
+                extraLife: false,
+                multiball: [],
+                laser: 0,
+                fireBall: 0
+            };
+
+            createBricks();
+            resetBall();
+
+            paddle.x = canvas.width / 2 - 60;
+            paddle.trail = [];
+        }
+
+        function draw() {
+            // Clear canvas with animated background
+            const time = Date.now() * 0.002;
+            const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+            gradient.addColorStop(0, `hsl(${240 + Math.sin(time) * 10}, 50%, ${10 + Math.sin(time * 0.5) * 5}%)`);
+            gradient.addColorStop(1, `hsl(${260 + Math.cos(time) * 10}, 40%, ${15 + Math.cos(time * 0.7) * 5}%)`);
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw all game elements
+            drawTrails();
+            drawParticles();
+            drawBricks();
+            drawPowerUps();
+            drawLasers();
+            drawPaddle();
+            drawBall();
+        }
+
+        function gameLoop() {
+            if (gameRunning && !gamePaused) {
+                updatePaddle();
+                updateBall();
+                updatePowerUps();
+                updateLasers();
+                updateTrails();
+                updateParticles();
+            }
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Initialize game
+        createBricks();
+        gameLoop();
+    </script>
+</body>
+</html>
