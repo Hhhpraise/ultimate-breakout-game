@@ -2,6 +2,8 @@
 
 A modern, feature-rich Breakout game with power-ups, special bricks, and visual effects built with HTML5 Canvas and JavaScript.
 
+**Live Demo:** 👉 [https://hhhpraise.github.io/ultimate-breakout-game/](https://hhhpraise.github.io/ultimate-breakout-game/)
+
 ## Features ✨
 
 - 🏓 Classic Breakout gameplay with modern twists
