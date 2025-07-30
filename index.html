@@ -129,6 +129,8 @@
             text-align: center;
             display: none;
             z-index: 1000;
+            width: 80%;
+            max-width: 400px;
         }
 
         .btn {
@@ -211,6 +213,71 @@
             z-index: 999;
         }
 
+        .start-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .start-screen h1 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            color: #ffd700;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+
+        .start-screen p {
+            margin: 10px 0;
+            max-width: 600px;
+            line-height: 1.6;
+        }
+
+        .best-score {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px 30px;
+            border-radius: 50px;
+            margin: 20px 0;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #00ff88;
+        }
+
+        .footer {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+        }
+
+        .footer a {
+            color: #00d2d3;
+            text-decoration: none;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.3s;
+        }
+
+        .footer a:hover {
+            color: #ff6b6b;
+            transform: translateY(-2px);
+        }
+
+        .footer a i {
+            font-size: 1.2rem;
+        }
+
         /* Mobile-specific styles */
         @media (max-width: 768px) {
             .game-container {
@@ -249,6 +316,30 @@
             .pause-overlay {
                 font-size: 28px;
             }
+
+            .start-screen h1 {
+                font-size: 1.8rem;
+            }
+
+            .start-screen p {
+                font-size: 0.9rem;
+            }
+
+            .best-score {
+                font-size: 1.2rem;
+                padding: 10px 20px;
+            }
+
+            .footer {
+                flex-direction: column;
+                gap: 15px;
+                margin-top: 15px;
+            }
+
+            .btn {
+                padding: 12px 24px;
+                font-size: 18px;
+            }
         }
 
         @media (max-height: 600px) {
@@ -264,6 +355,24 @@
 </head>
 <body>
     <div class="game-container">
+        <div class="start-screen" id="startScreen">
+            <h1>ULTIMATE BREAKOUT</h1>
+            <p>Destroy all bricks without losing your balls! Collect power-ups for special abilities.</p>
+
+            <div class="best-score">Best Score: <span id="bestScore">0</span></div>
+
+            <button class="btn" id="startBtn">START GAME</button>
+
+            <div class="footer">
+                <a href="https://hhhpraise.github.io/portfolio/" target="_blank">
+                    <i>👨‍💻</i> My Portfolio
+                </a>
+                <a href="mailto:hhhpraise33@gmail.com">
+                    <i>✉️</i> Send Suggestions
+                </a>
+            </div>
+        </div>
+
         <div class="wave-indicator">Wave: <span id="wave">1</span></div>
         <div class="power-up-indicator" id="powerUpStatus"></div>
         <div class="ui">
@@ -323,6 +432,7 @@
             <p>Final Score: <span id="finalScore">0</span></p>
             <p>Wave Reached: <span id="finalWave">1</span></p>
             <p>Max Combo: <span id="maxCombo">0</span></p>
+            <p>Best Score: <span id="gameOverBestScore">0</span></p>
             <button class="btn" onclick="restartGame()">Play Again</button>
         </div>
     </div>
@@ -363,8 +473,16 @@
         const finalScoreElement = document.getElementById('finalScore');
         const finalWaveElement = document.getElementById('finalWave');
         const maxComboElement = document.getElementById('maxCombo');
+        const gameOverBestScoreElement = document.getElementById('gameOverBestScore');
         const comboDisplayElement = document.getElementById('comboDisplay');
         const pauseOverlay = document.getElementById('pauseOverlay');
+        const startScreen = document.getElementById('startScreen');
+        const startBtn = document.getElementById('startBtn');
+        const bestScoreElement = document.getElementById('bestScore');
+
+        // Load best score from localStorage
+        let bestScore = localStorage.getItem('breakoutBestScore') || 0;
+        bestScoreElement.textContent = bestScore;
 
         // Show/hide controls based on device
         if (isMobile) {
@@ -373,7 +491,7 @@
         }
 
         // Game state
-        let gameRunning = true;
+        let gameRunning = false;
         let gamePaused = false;
         let score = 0;
         let lives = 3;
@@ -583,8 +701,8 @@
                 shootLaser();
             });
 
-            // Pause button
-            pauseBtn.addEventListener('click', (e) => {
+            // Pause button - FIXED: using touchend for consistent behavior
+            pauseBtn.addEventListener('touchend', (e) => {
                 e.preventDefault();
                 togglePause();
             });
@@ -594,6 +712,8 @@
         }
 
         function togglePause() {
+            if (!gameRunning) return;
+
             gamePaused = !gamePaused;
             pauseOverlay.style.display = gamePaused ? 'flex' : 'none';
 
@@ -602,6 +722,15 @@
                 audioContext.resume();
             }
         }
+
+        function startGame() {
+            gameRunning = true;
+            startScreen.style.display = 'none';
+            restartGame();
+        }
+
+        // Start button event listener
+        startBtn.addEventListener('click', startGame);
 
         function createParticles(x, y, color, count = 10) {
             for (let i = 0; i < count; i++) {
@@ -645,7 +774,7 @@
         }
 
         function shootLaser() {
-            if (canShootLaser && laserCooldown <= 0) {
+            if (canShootLaser && laserCooldown <= 0 && gameRunning && !gamePaused) {
                 lasers.push({
                     x: paddle.x + paddle.width / 2 - 2,
                     y: paddle.y,
@@ -1298,8 +1427,16 @@
             finalScoreElement.textContent = score;
             finalWaveElement.textContent = wave;
             maxComboElement.textContent = maxCombo;
+            gameOverBestScoreElement.textContent = bestScore;
             gameOverDiv.style.display = 'block';
             playSound(150, 1, 'square');
+
+            // Update best score
+            if (score > bestScore) {
+                bestScore = score;
+                localStorage.setItem('breakoutBestScore', bestScore);
+                gameOverBestScoreElement.textContent = bestScore + " (New Record!)";
+            }
 
             // Final explosion effect
             for (let i = 0; i < 50; i++) {
