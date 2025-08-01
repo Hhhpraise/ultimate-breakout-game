@@ -117,6 +117,15 @@
             font-size: 16px;
         }
 
+        .sound-button {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            font-size: 20px;
+        }
+
+        .sound-button.muted {
+            background: linear-gradient(45deg, #dc3545, #c82333);
+        }
+
         .game-over {
             position: absolute;
             top: 50%;
@@ -206,11 +215,49 @@
             bottom: 0;
             background: rgba(0, 0, 0, 0.8);
             display: none;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             font-size: 36px;
             color: white;
             z-index: 999;
+            cursor: pointer;
+            touch-action: manipulation;
+            user-select: none;
+        }
+
+        .pause-content {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .pause-title {
+            font-size: 48px;
+            margin-bottom: 20px;
+            color: #ffd700;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+
+        .pause-subtitle {
+            font-size: 18px;
+            opacity: 0.8;
+            margin-bottom: 30px;
+        }
+
+        .resume-btn {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            border: none;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 18px;
+            transition: transform 0.2s;
+            touch-action: manipulation;
+        }
+
+        .resume-btn:hover, .resume-btn:active {
+            transform: scale(1.05);
         }
 
         .start-screen {
@@ -278,6 +325,37 @@
             font-size: 1.2rem;
         }
 
+        .sound-toggle {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: manipulation;
+            user-select: none;
+            transition: all 0.2s;
+            z-index: 200;
+        }
+
+        .sound-toggle.muted {
+            background: rgba(220, 53, 69, 0.3);
+            border-color: rgba(220, 53, 69, 0.5);
+        }
+
+        .sound-toggle:active {
+            transform: scale(0.95);
+        }
+
         /* Mobile-specific styles */
         @media (max-width: 768px) {
             .game-container {
@@ -317,6 +395,14 @@
                 font-size: 28px;
             }
 
+            .pause-title {
+                font-size: 36px;
+            }
+
+            .pause-subtitle {
+                font-size: 16px;
+            }
+
             .start-screen h1 {
                 font-size: 1.8rem;
             }
@@ -340,6 +426,12 @@
                 padding: 12px 24px;
                 font-size: 18px;
             }
+
+            .sound-toggle {
+                width: 45px;
+                height: 45px;
+                font-size: 18px;
+            }
         }
 
         @media (max-height: 600px) {
@@ -355,6 +447,8 @@
 </head>
 <body>
     <div class="game-container">
+        <button class="sound-toggle" id="soundToggle">🔊</button>
+
         <div class="start-screen" id="startScreen">
             <h1>ULTIMATE BREAKOUT</h1>
             <p>Destroy all bricks without losing your balls! Collect power-ups for special abilities.</p>
@@ -425,7 +519,14 @@
         </div>
 
         <div class="combo-indicator" id="comboDisplay" style="display: none;"></div>
-        <div class="pause-overlay" id="pauseOverlay">PAUSED</div>
+
+        <div class="pause-overlay" id="pauseOverlay">
+            <div class="pause-content">
+                <div class="pause-title">PAUSED</div>
+                <div class="pause-subtitle">Tap anywhere or click the button to resume</div>
+                <button class="resume-btn" id="resumeBtn">RESUME GAME</button>
+            </div>
+        </div>
 
         <div class="game-over" id="gameOver">
             <h2>Game Over!</h2>
@@ -442,6 +543,24 @@
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
                          ('ontouchstart' in window) ||
                          (navigator.maxTouchPoints > 0);
+
+        // Sound management
+        let soundEnabled = localStorage.getItem('breakoutSoundEnabled') !== 'false';
+        const soundToggle = document.getElementById('soundToggle');
+
+        function updateSoundToggle() {
+            soundToggle.textContent = soundEnabled ? '🔊' : '🔇';
+            soundToggle.classList.toggle('muted', !soundEnabled);
+        }
+
+        soundToggle.addEventListener('click', (e) => {
+            e.preventDefault();
+            soundEnabled = !soundEnabled;
+            localStorage.setItem('breakoutSoundEnabled', soundEnabled);
+            updateSoundToggle();
+        });
+
+        updateSoundToggle();
 
         // Canvas setup with responsive sizing
         const canvas = document.getElementById('gameCanvas');
@@ -476,11 +595,12 @@
         const gameOverBestScoreElement = document.getElementById('gameOverBestScore');
         const comboDisplayElement = document.getElementById('comboDisplay');
         const pauseOverlay = document.getElementById('pauseOverlay');
+        const resumeBtn = document.getElementById('resumeBtn');
         const startScreen = document.getElementById('startScreen');
         const startBtn = document.getElementById('startBtn');
         const bestScoreElement = document.getElementById('bestScore');
 
-        // Load best score from localStorage
+        // Load best score
         let bestScore = localStorage.getItem('breakoutBestScore') || 0;
         bestScoreElement.textContent = bestScore;
 
@@ -508,6 +628,8 @@
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
         function playSound(frequency, duration, type = 'sine', volume = 0.1) {
+            if (!soundEnabled) return;
+
             try {
                 const oscillator = audioContext.createOscillator();
                 const gainNode = audioContext.createGain();
@@ -701,7 +823,7 @@
                 shootLaser();
             });
 
-            // Pause button - FIXED: using touchend for consistent behavior
+            // Pause button
             pauseBtn.addEventListener('touchend', (e) => {
                 e.preventDefault();
                 togglePause();
@@ -722,6 +844,36 @@
                 audioContext.resume();
             }
         }
+
+        // Pause overlay click/touch handlers
+        pauseOverlay.addEventListener('click', (e) => {
+            if (gamePaused) {
+                togglePause();
+            }
+        });
+
+        pauseOverlay.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            if (gamePaused) {
+                togglePause();
+            }
+        });
+
+        // Resume button
+        resumeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (gamePaused) {
+                togglePause();
+            }
+        });
+
+        resumeBtn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (gamePaused) {
+                togglePause();
+            }
+        });
 
         function startGame() {
             gameRunning = true;
