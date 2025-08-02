@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, minimum-scale=1.0">
-    <title>Ultimate Breakout Game</title>
+    <title>Ultimate Breakout Game </title>
     <style>
         * {
             margin: 0;
@@ -612,6 +612,19 @@
             from { box-shadow: 0 0 15px rgba(0, 210, 211, 0.7); }
             to { box-shadow: 0 0 25px rgba(0, 210, 211, 1); }
         }
+
+        /* Speed indicator */
+        .speed-indicator {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            font-size: 14px;
+            color: #ffd700;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 5px 10px;
+            border-radius: 10px;
+            z-index: 100;
+        }
     </style>
 </head>
 <body>
@@ -621,6 +634,7 @@
         <div class="start-screen" id="startScreen">
             <h1>ULTIMATE BREAKOUT </h1>
             <p>Destroy all bricks without losing your balls! Collect power-ups for special abilities.</p>
+            <p>Ball speed increases with each wave!</p>
 
             <div class="best-score">Best Score: <span id="bestScore">0</span></div>
 
@@ -642,6 +656,7 @@
         <div class="wave-transition" id="waveTransition">
             <h2 id="waveTransitionTitle">Wave 1</h2>
             <p id="waveTransitionText">Get Ready!</p>
+            <p id="speedIncreaseNotice">Ball speed increased!</p>
             <div class="wave-progress">
                 <div class="wave-progress-bar" id="waveProgressBar"></div>
             </div>
@@ -655,6 +670,8 @@
             <div>Combo: <span id="combo">0</span></div>
         </div>
         <canvas id="gameCanvas"></canvas>
+
+        <div class="speed-indicator">Speed: <span id="speedValue">100%</span></div>
 
         <div class="controls" id="desktopControls">
             Use ← → arrow keys or A/D to move • SPACE to shoot laser • P to pause
@@ -696,8 +713,7 @@
             <p>Wave Reached: <span id="finalWave">1</span></p>
             <p>Max Combo: <span id="maxCombo">0</span></p>
             <p>Best Score: <span id="gameOverBestScore">0</span></p>
-           <!-- To this: -->
-            <button class="btn" id="restartBtn" onclick="restartGame()">Play Again</button>
+            <button class="btn" id="restartBtn">Play Again</button>
         </div>
     </div>
 
@@ -942,8 +958,10 @@
         const waveTransition = document.getElementById('waveTransition');
         const waveTransitionTitle = document.getElementById('waveTransitionTitle');
         const waveTransitionText = document.getElementById('waveTransitionText');
+        const speedIncreaseNotice = document.getElementById('speedIncreaseNotice');
         const waveProgressBar = document.getElementById('waveProgressBar');
         const restartBtn = document.getElementById('restartBtn');
+        const speedValueElement = document.getElementById('speedValue');
 
         // Live stats elements
         const bricksRemainingElement = document.getElementById('bricksRemaining');
@@ -1034,6 +1052,7 @@
             dx: 4,
             dy: -4,
             speed: 6,
+            originalSpeed: 6, // Store original speed for reference
             originalRadius: 8,
             trail: [],
             fireBall: false,
@@ -1561,6 +1580,13 @@
             ];
             waveTransitionText.textContent = messages[Math.floor(Math.random() * messages.length)];
 
+            // Show speed increase notice for waves after 1
+            if (wave > 1) {
+                speedIncreaseNotice.style.display = 'block';
+            } else {
+                speedIncreaseNotice.style.display = 'none';
+            }
+
             // Generate new wave colors
             generateWaveColors();
             updateCanvasBackground();
@@ -1636,6 +1662,54 @@
                 bricks.push(brick);
                 animatingBricks.push(brick);
             });
+
+            // Increase ball speed for each new wave
+            increaseBallSpeed();
+        }
+
+        // NEW: Increase ball speed for each new wave
+        function increaseBallSpeed() {
+            // Base speed increase per wave (5%)
+            const speedIncreasePerWave = 0.05;
+
+            // Calculate new speed
+            let newSpeed = ball.originalSpeed * (1 + speedIncreasePerWave * (wave - 1));
+
+            // Cap at 200% of original speed
+            newSpeed = Math.min(newSpeed, ball.originalSpeed * 2);
+
+            // Calculate percentage for display
+            const speedPercentage = Math.round((newSpeed / ball.originalSpeed) * 100);
+
+            // Update ball speed
+            ball.speed = newSpeed;
+
+            // Update UI
+            speedValueElement.textContent = `${speedPercentage}%`;
+
+            // Adjust current velocity to match new speed
+            const currentMagnitude = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy);
+            if (currentMagnitude > 0) {
+                const ratio = ball.speed / currentMagnitude;
+                ball.dx *= ratio;
+                ball.dy *= ratio;
+            }
+
+            // Also update multiballs
+            activePowerUps.multiball.forEach(mb => {
+                mb.speed = newSpeed;
+                const mbMagnitude = Math.sqrt(mb.dx * mb.dx + mb.dy * mb.dy);
+                if (mbMagnitude > 0) {
+                    const mbRatio = newSpeed / mbMagnitude;
+                    mb.dx *= mbRatio;
+                    mb.dy *= mbRatio;
+                }
+            });
+
+            // Visual effect
+            if (wave > 1) {
+                createParticles(ball.x, ball.y, '#ffd700', 15);
+            }
         }
 
         function animateBricksIn() {
@@ -2245,8 +2319,12 @@
             paddle.laserGlow = false;
 
             ball.radius = ball.originalRadius;
+            ball.speed = ball.originalSpeed;
             ball.fireBall = false;
             resetBall();
+
+            // Update speed display
+            speedValueElement.textContent = '100%';
 
             // Clear arrays
             lasers = [];
@@ -2322,7 +2400,7 @@
 
             // Special effects for brick types
             if (brick.type === 'metal') {
-                ctx.strokeStyle = '#silver';
+                ctx.strokeStyle = '#c0c0c0';
                 ctx.lineWidth = 2;
                 ctx.strokeRect(brick.x, brick.y, brick.width, brick.height);
             } else if (brick.type === 'explosive') {
@@ -2525,7 +2603,11 @@
         resizeCanvas();
         updateCanvasBackground();
 
-
+        // Add restart button functionality
+        restartBtn.addEventListener('click', () => {
+            gameOverDiv.style.display = 'none';
+            restartGame();
+        });
     </script>
 </body>
 </html>
