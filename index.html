@@ -679,7 +679,7 @@
         <div class="start-screen" id="startScreen">
             <h1>ULTIMATE BREAKOUT </h1>
             <p>Destroy all bricks without losing your balls! Collect power-ups for special abilities.</p>
-            
+
 
             <div class="best-score">Best Score: <span id="bestScore">0</span></div>
 
@@ -1872,13 +1872,13 @@
         // NEW: Increase ball speed for each new wave
         function increaseBallSpeed() {
             // Base speed increase per wave (5%)
-            const speedIncreasePerWave = 0.05;
+            const speedIncreasePerWave = 0.1;
 
             // Calculate new speed
             let newSpeed = ball.originalSpeed * (1 + speedIncreasePerWave * (wave - 1));
 
             // Cap at 200% of original speed
-            newSpeed = Math.min(newSpeed, ball.originalSpeed * 2);
+            newSpeed = Math.min(newSpeed, ball.originalSpeed * 4);
 
             // Calculate percentage for display
             const speedPercentage = Math.round((newSpeed / ball.originalSpeed) * 100);
