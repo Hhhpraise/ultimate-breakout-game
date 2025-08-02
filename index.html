@@ -619,7 +619,7 @@
         <button class="sound-toggle" id="soundToggle">🔊</button>
 
         <div class="start-screen" id="startScreen">
-            <h1>ULTIMATE BREAKOUT - FIXED</h1>
+            <h1>ULTIMATE BREAKOUT </h1>
             <p>Destroy all bricks without losing your balls! Collect power-ups for special abilities.</p>
 
             <div class="best-score">Best Score: <span id="bestScore">0</span></div>
@@ -696,7 +696,8 @@
             <p>Wave Reached: <span id="finalWave">1</span></p>
             <p>Max Combo: <span id="maxCombo">0</span></p>
             <p>Best Score: <span id="gameOverBestScore">0</span></p>
-            <button class="btn" id="restartBtn">Play Again</button>
+           <!-- To this: -->
+            <button class="btn" id="restartBtn" onclick="restartGame()">Play Again</button>
         </div>
     </div>
 
@@ -2234,6 +2235,7 @@
             gameStartTime = Date.now();
             gamePaused = false;
             waveTransitioning = false;
+            gameRunning = true; // Add this line
 
             // Reset objects
             paddle.width = paddle.originalWidth;
@@ -2278,7 +2280,7 @@
             comboElement.textContent = combo;
             waveElement.textContent = wave;
             powerUpStatusElement.textContent = '';
-            gameOverDiv.style.display = 'none';
+            gameOverDiv.style.display = 'none'; // Hide game over screen
             pauseOverlay.style.display = 'none';
             comboDisplayElement.style.display = 'none';
 
@@ -2287,7 +2289,7 @@
             updateCanvasBackground();
             startWaveTransition();
 
-            // FIXED: Ensure game loop starts
+            // Start the game loop
             if (!gameLoopId) {
                 gameLoop();
             }
@@ -2519,8 +2521,7 @@
         resizeCanvas();
         updateCanvasBackground();
 
-        // Restart button event listener
-        restartBtn.addEventListener('click', restartGame);
+
 
     </script>
 </body>
