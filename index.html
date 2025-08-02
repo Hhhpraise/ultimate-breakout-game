@@ -625,16 +625,61 @@
             border-radius: 10px;
             z-index: 100;
         }
+
+        /* Magnet indicator */
+        .magnet-indicator {
+            position: absolute;
+            top: 10px;
+            left: 70px;
+            font-size: 24px;
+            color: #ff6b6b;
+            text-shadow: 0 0 10px rgba(255, 107, 107, 0.7);
+            z-index: 100;
+            display: none;
+            animation: magnetPulse 1.5s infinite alternate;
+        }
+
+        @keyframes magnetPulse {
+            0% { transform: scale(1); opacity: 0.8; }
+            100% { transform: scale(1.2); opacity: 1; }
+        }
+
+        /* Cheat code notification */
+        .cheat-notification {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(45deg, #ff9ff3, #fd79a8);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 15px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            box-shadow: 0 8px 32px rgba(253, 121, 168, 0.4);
+            z-index: 2500;
+            animation: cheatPulse 2s ease-in-out;
+            pointer-events: none;
+            display: none;
+        }
+
+        @keyframes cheatPulse {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+            50% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+        }
     </style>
 </head>
 <body>
     <div class="game-container">
         <button class="sound-toggle" id="soundToggle">🔊</button>
+        <div class="magnet-indicator" id="magnetIndicator">🧲</div>
+        <div class="cheat-notification" id="cheatNotification">MAGNET CHEAT ACTIVATED!</div>
 
         <div class="start-screen" id="startScreen">
             <h1>ULTIMATE BREAKOUT </h1>
             <p>Destroy all bricks without losing your balls! Collect power-ups for special abilities.</p>
-            <p>Ball speed increases with each wave!</p>
+            
 
             <div class="best-score">Best Score: <span id="bestScore">0</span></div>
 
@@ -656,7 +701,6 @@
         <div class="wave-transition" id="waveTransition">
             <h2 id="waveTransitionTitle">Wave 1</h2>
             <p id="waveTransitionText">Get Ready!</p>
-            <p id="speedIncreaseNotice">Ball speed increased!</p>
             <div class="wave-progress">
                 <div class="wave-progress-bar" id="waveProgressBar"></div>
             </div>
@@ -958,10 +1002,11 @@
         const waveTransition = document.getElementById('waveTransition');
         const waveTransitionTitle = document.getElementById('waveTransitionTitle');
         const waveTransitionText = document.getElementById('waveTransitionText');
-        const speedIncreaseNotice = document.getElementById('speedIncreaseNotice');
         const waveProgressBar = document.getElementById('waveProgressBar');
         const restartBtn = document.getElementById('restartBtn');
         const speedValueElement = document.getElementById('speedValue');
+        const magnetIndicator = document.getElementById('magnetIndicator');
+        const cheatNotification = document.getElementById('cheatNotification');
 
         // Live stats elements
         const bricksRemainingElement = document.getElementById('bricksRemaining');
@@ -1137,16 +1182,30 @@
             right: false
         };
 
+        // Cheat code variables
+        let cheatSequence = [];
+        let magnetActive = false;
+        let magnetCheatActivatedThisWave = false;
+        let magnetParticles = [];
+
         // Desktop controls
         document.addEventListener('keydown', (e) => {
             keys[e.key] = true;
+
+            // Add to cheat sequence
+            if (e.key === 'ArrowLeft') cheatSequence.push('left');
+            if (e.key === 'ArrowRight') cheatSequence.push('right');
             if (e.key === ' ') {
+                cheatSequence.push('laser');
                 e.preventDefault();
                 shootLaser();
             }
             if (e.key === 'p' || e.key === 'P') {
                 togglePause();
             }
+
+            // Check cheat sequence
+            checkCheatSequence();
         });
         document.addEventListener('keyup', (e) => keys[e.key] = false);
 
@@ -1197,6 +1256,8 @@
             leftBtn.addEventListener('touchstart', (e) => {
                 e.preventDefault();
                 touchControls.left = true;
+                cheatSequence.push('left');
+                checkCheatSequence();
             });
             leftBtn.addEventListener('touchend', (e) => {
                 e.preventDefault();
@@ -1206,6 +1267,8 @@
             rightBtn.addEventListener('touchstart', (e) => {
                 e.preventDefault();
                 touchControls.right = true;
+                cheatSequence.push('right');
+                checkCheatSequence();
             });
             rightBtn.addEventListener('touchend', (e) => {
                 e.preventDefault();
@@ -1215,6 +1278,8 @@
             // Laser button
             laserBtn.addEventListener('click', (e) => {
                 e.preventDefault();
+                cheatSequence.push('laser');
+                checkCheatSequence();
                 shootLaser();
             });
 
@@ -1222,6 +1287,145 @@
             pauseBtn.addEventListener('touchend', (e) => {
                 e.preventDefault();
                 togglePause();
+            });
+        }
+
+        // Cheat code: left, right, left, right, laser, laser
+        function checkCheatSequence() {
+            // Only allow cheat when laser power-up is active
+            const now = Date.now();
+            if (!activePowerUps.laser || now > activePowerUps.laser) {
+                cheatSequence = [];
+                return;
+            }
+
+            // Keep only the last 6 inputs
+            if (cheatSequence.length > 6) {
+                cheatSequence = cheatSequence.slice(-6);
+            }
+
+            // Check for the sequence
+            const requiredSequence = ['left', 'right', 'left', 'right', 'laser', 'laser'];
+            let sequenceMatch = true;
+
+            if (cheatSequence.length < 6) return;
+
+            for (let i = 0; i < 6; i++) {
+                if (cheatSequence[cheatSequence.length - 6 + i] !== requiredSequence[i]) {
+                    sequenceMatch = false;
+                    break;
+                }
+            }
+
+            if (sequenceMatch && !magnetCheatActivatedThisWave) {
+                activateMagnetCheat();
+                cheatSequence = [];
+            }
+        }
+
+        function activateMagnetCheat() {
+            magnetActive = true;
+            magnetCheatActivatedThisWave = true;
+            magnetIndicator.style.display = 'block';
+            cheatNotification.style.display = 'block';
+
+            playSound(500, 0.5, 'sine', 0.3);
+
+            // Show particles
+            for (let i = 0; i < 30; i++) {
+                magnetParticles.push({
+                    x: paddle.x + paddle.width/2,
+                    y: paddle.y,
+                    dx: (Math.random() - 0.5) * 4,
+                    dy: (Math.random() - 0.5) * 4,
+                    color: '#ff6b6b',
+                    life: 1,
+                    decay: 0.01 + Math.random() * 0.01,
+                    size: 3 + Math.random() * 3
+                });
+            }
+
+            setTimeout(() => {
+                cheatNotification.style.display = 'none';
+            }, 2000);
+        }
+
+        function updateMagnetEffect() {
+            if (!magnetActive) return;
+
+            // Create ongoing particles
+            if (Math.random() < 0.3) {
+                magnetParticles.push({
+                    x: paddle.x + paddle.width/2,
+                    y: paddle.y,
+                    dx: (Math.random() - 0.5) * 2,
+                    dy: (Math.random() - 0.5) * 2,
+                    color: '#ff6b6b',
+                    life: 1,
+                    decay: 0.01 + Math.random() * 0.01,
+                    size: 2 + Math.random() * 2
+                });
+            }
+
+            // Update particles
+            magnetParticles = magnetParticles.filter(particle => {
+                particle.x += particle.dx;
+                particle.y += particle.dy;
+                particle.life -= particle.decay;
+                return particle.life > 0;
+            });
+
+            // Attract ball to paddle
+            const paddleCenterX = paddle.x + paddle.width/2;
+            const distanceX = paddleCenterX - ball.x;
+            const distanceY = paddle.y - ball.y;
+            const distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
+
+            if (distance < 300) { // Magnet effect range
+                const force = 0.2;
+                ball.dx += (distanceX / distance) * force;
+                ball.dy += (distanceY / distance) * force;
+
+                // Add visual effect to ball
+                if (Math.random() < 0.3) {
+                    particles.push({
+                        x: ball.x,
+                        y: ball.y,
+                        dx: (Math.random() - 0.5) * 2,
+                        dy: (Math.random() - 0.5) * 2,
+                        color: '#ff6b6b',
+                        life: 0.7,
+                        decay: 0.02,
+                        size: 1 + Math.random() * 2
+                    });
+                }
+            }
+
+            // Attract multiballs
+            activePowerUps.multiball.forEach(mb => {
+                const mbDistanceX = paddleCenterX - mb.x;
+                const mbDistanceY = paddle.y - mb.y;
+                const mbDistance = Math.sqrt(mbDistanceX * mbDistanceX + mbDistanceY * mbDistanceY);
+
+                if (mbDistance < 300) {
+                    const force = 0.2;
+                    mb.dx += (mbDistanceX / mbDistance) * force;
+                    mb.dy += (mbDistanceY / mbDistance) * force;
+
+                    // Add visual effect to multiball
+                    if (Math.random() < 0.3) {
+                        particles.push({
+                            x: mb.x,
+                            y: mb.y,
+                            dx: (Math.random() - 0.5) * 2,
+                            dy: (Math.random() - 0.5) * 2,
+                            color: '#ff6b6b',
+                            life: 0.7,
+                            decay: 0.02,
+                            size: 1 + Math.random() * 2
+                        });
+                    }
+                }
             });
         }
 
@@ -1580,13 +1784,6 @@
             ];
             waveTransitionText.textContent = messages[Math.floor(Math.random() * messages.length)];
 
-            // Show speed increase notice for waves after 1
-            if (wave > 1) {
-                speedIncreaseNotice.style.display = 'block';
-            } else {
-                speedIncreaseNotice.style.display = 'none';
-            }
-
             // Generate new wave colors
             generateWaveColors();
             updateCanvasBackground();
@@ -1606,6 +1803,11 @@
                     }, 500);
                 }
             }, 30);
+
+            // Reset magnet cheat for new wave
+            magnetActive = false;
+            magnetIndicator.style.display = 'none';
+            magnetCheatActivatedThisWave = false;
         }
 
         function createBricks() {
@@ -2001,6 +2203,11 @@
         function updateBall() {
             if (gamePaused || waveTransitioning) return;
 
+            // Apply magnet effect if active
+            if (magnetActive) {
+                updateMagnetEffect();
+            }
+
             // Main ball
             ball.x += ball.dx;
             ball.y += ball.dy;
@@ -2187,6 +2394,14 @@
                 return particle.life > 0;
             });
 
+            // Update magnet particles
+            magnetParticles = magnetParticles.filter(particle => {
+                particle.x += particle.dx;
+                particle.y += particle.dy;
+                particle.life -= particle.decay;
+                return particle.life > 0;
+            });
+
             // Update explosions
             explosions = explosions.filter(explosion => {
                 explosion.radius += 2;
@@ -2333,6 +2548,13 @@
             explosions = [];
             bricks = [];
             animatingBricks = [];
+            magnetParticles = [];
+
+            // Reset cheat code
+            cheatSequence = [];
+            magnetActive = false;
+            magnetIndicator.style.display = 'none';
+            magnetCheatActivatedThisWave = false;
 
             // Reset power-ups
             activePowerUps = {
@@ -2442,6 +2664,17 @@
 
             // Draw particles
             particles.forEach(particle => {
+                ctx.save();
+                ctx.globalAlpha = particle.life;
+                ctx.fillStyle = particle.color;
+                ctx.beginPath();
+                ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            });
+
+            // Draw magnet particles
+            magnetParticles.forEach(particle => {
                 ctx.save();
                 ctx.globalAlpha = particle.life;
                 ctx.fillStyle = particle.color;
