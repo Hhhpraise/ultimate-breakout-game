@@ -2235,7 +2235,7 @@
             gameStartTime = Date.now();
             gamePaused = false;
             waveTransitioning = false;
-            gameRunning = true; // Add this line
+            gameRunning = true; // CRITICAL: Ensure game is running
 
             // Reset objects
             paddle.width = paddle.originalWidth;
@@ -2280,7 +2280,7 @@
             comboElement.textContent = combo;
             waveElement.textContent = wave;
             powerUpStatusElement.textContent = '';
-            gameOverDiv.style.display = 'none'; // Hide game over screen
+            gameOverDiv.style.display = 'none';
             pauseOverlay.style.display = 'none';
             comboDisplayElement.style.display = 'none';
 
@@ -2289,11 +2289,16 @@
             updateCanvasBackground();
             startWaveTransition();
 
-            // Start the game loop
-            if (!gameLoopId) {
-                gameLoop();
+            // CRITICAL: Stop any existing game loop
+            if (gameLoopId) {
+                cancelAnimationFrame(gameLoopId);
+                gameLoopId = null;
             }
+
+            // Start the game loop
+            gameLoop();
         }
+
 
         function drawBrick(brick) {
             if (!brick.visible) return;
@@ -2513,7 +2518,6 @@
 
             draw();
 
-            // FIXED: Always schedule next frame when game is running
             gameLoopId = requestAnimationFrame(gameLoop);
         }
 
