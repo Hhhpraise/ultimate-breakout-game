@@ -3,8 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, minimum-scale=1.0">
-    <title>Ultimate Breakout Game </title>
+    <title>Ultimate Breakout</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --bg-deep: #08080e;
+            --bg-surface: #12121a;
+            --bg-elevated: #1a1a26;
+            --text-primary: #f0edf2;
+            --text-secondary: #8b8896;
+            --text-muted: #5c5a66;
+            --accent-coral: #ff3d5c;
+            --accent-coral-glow: rgba(255, 61, 92, 0.5);
+            --accent-amber: #ffb800;
+            --accent-amber-glow: rgba(255, 184, 0, 0.4);
+            --accent-violet: #b347ea;
+            --accent-violet-glow: rgba(179, 71, 234, 0.4);
+            --accent-mint: #2ecc71;
+            --accent-mint-glow: rgba(46, 204, 113, 0.4);
+            --accent-cyan: #00c8d6;
+            --border-subtle: rgba(255, 255, 255, 0.06);
+            --border-active: rgba(255, 255, 255, 0.15);
+            --radius-sm: 4px;
+            --radius-md: 8px;
+            --radius-lg: 16px;
+            --font-display: 'Orbitron', system-ui, sans-serif;
+            --font-body: 'Space Grotesk', system-ui, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --ease-out-expo: cubic-bezier(0.19, 1, 0.22, 1);
+            --ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
+            --ease-in-out-quint: cubic-bezier(0.83, 0, 0.17, 1);
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -19,124 +51,157 @@
         }
 
         body {
-            background: linear-gradient(135deg, #1e3c72, #2a5298);
-            font-family: 'Arial', sans-serif;
+            background: var(--bg-deep);
+            font-family: var(--font-body);
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            color: white;
+            color: var(--text-primary);
             overflow: hidden;
             touch-action: manipulation;
+            letter-spacing: 0.01em;
+        }
+
+        /* Subtle radial background glow */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(255, 61, 92, 0.04) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
         }
 
         .game-container {
             text-align: center;
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 10px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 12px;
             position: relative;
             width: 100%;
-            max-width: 820px;
+            max-width: 840px;
             height: 100vh;
             max-height: 100vh;
             display: flex;
             flex-direction: column;
+            box-shadow: 0 0 80px rgba(0, 0, 0, 0.5), 0 0 1px var(--border-active);
+            z-index: 1;
         }
 
         canvas {
-            border: 3px solid #fff;
-            border-radius: 10px;
-            background: linear-gradient(45deg, #0f0f23, #1a1a2e);
-            box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            background: var(--bg-deep);
             flex: 1;
             max-width: 100%;
             height: auto;
             touch-action: none;
+            image-rendering: auto;
         }
 
         .ui {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 10px;
-            font-size: 16px;
-            font-weight: bold;
+            margin-bottom: 8px;
+            font-family: var(--font-mono);
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 0.04em;
+            padding: 0 4px;
+        }
+
+        .ui > div {
+            color: var(--text-secondary);
+            transition: color 0.3s var(--ease-out-expo);
+        }
+
+        .ui span {
+            color: var(--text-primary);
+            font-weight: 700;
         }
 
         .controls {
-            margin-top: 10px;
-            font-size: 12px;
-            opacity: 0.8;
-            line-height: 1.3;
+            margin-top: 8px;
+            font-size: 11px;
+            color: var(--text-muted);
+            letter-spacing: 0.03em;
+            font-family: var(--font-mono);
         }
 
         .mobile-controls {
             display: none;
             justify-content: space-between;
             align-items: center;
-            padding: 10px;
-            margin-top: 10px;
+            padding: 8px 4px;
+            margin-top: 8px;
         }
 
         .control-button {
-            background: rgba(255, 255, 255, 0.2);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            color: white;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-primary);
             padding: 15px;
             border-radius: 50%;
             cursor: pointer;
             font-size: 18px;
-            width: 60px;
-            height: 60px;
+            width: 56px;
+            height: 56px;
             display: flex;
             align-items: center;
             justify-content: center;
             touch-action: manipulation;
             user-select: none;
-            transition: all 0.1s;
+            transition: background 0.15s var(--ease-out-expo), border-color 0.15s var(--ease-out-expo);
+            font-family: var(--font-body);
         }
 
         .control-button:active {
-            background: rgba(255, 255, 255, 0.4);
-            transform: scale(0.95);
+            background: var(--accent-coral);
+            border-color: var(--accent-coral);
         }
 
         .control-group {
             display: flex;
-            gap: 20px;
+            gap: 16px;
         }
 
         .laser-button {
-            background: linear-gradient(45deg, #00d2d3, #0099cc);
-            font-size: 20px;
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
         }
 
         .laser-button.active {
-            background: linear-gradient(45deg, #00ffff, #00d2d3);
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.6);
-            animation: laserGlow 1s ease-in-out infinite alternate;
+            background: var(--accent-cyan);
+            color: var(--bg-deep);
+            border-color: var(--accent-cyan);
+            animation: laserBtnPulse 0.8s ease-in-out infinite alternate;
         }
 
-        @keyframes laserGlow {
-            from { box-shadow: 0 0 20px rgba(0, 255, 255, 0.6); }
-            to { box-shadow: 0 0 30px rgba(0, 255, 255, 0.9); }
+        @keyframes laserBtnPulse {
+            from { box-shadow: 0 0 12px rgba(0, 200, 214, 0.4); }
+            to { box-shadow: 0 0 24px rgba(0, 200, 214, 0.7); }
         }
 
         .pause-button {
-            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
-            font-size: 16px;
+            border-color: var(--accent-coral);
+            color: var(--accent-coral);
         }
 
         .sound-button {
-            background: linear-gradient(45deg, #28a745, #20c997);
-            font-size: 20px;
+            border-color: var(--accent-mint);
+            color: var(--accent-mint);
         }
 
         .sound-button.muted {
-            background: linear-gradient(45deg, #dc3545, #c82333);
+            border-color: var(--text-muted);
+            color: var(--text-muted);
         }
 
         .game-over {
@@ -144,79 +209,117 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.9);
-            color: white;
-            padding: 30px;
-            border-radius: 15px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-active);
+            color: var(--text-primary);
+            padding: 36px;
+            border-radius: var(--radius-lg);
             text-align: center;
             display: none;
             z-index: 1000;
-            width: 80%;
-            max-width: 400px;
+            width: 85%;
+            max-width: 380px;
+            font-family: var(--font-body);
+        }
+
+        .game-over h2 {
+            font-family: var(--font-display);
+            font-size: 1.6rem;
+            color: var(--accent-coral);
+            margin-bottom: 16px;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .game-over p {
+            margin: 6px 0;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .game-over span {
+            color: var(--text-primary);
+            font-weight: 600;
+            font-family: var(--font-mono);
         }
 
         .btn {
-            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            background: var(--accent-coral);
             border: none;
-            color: white;
-            padding: 10px 20px;
-            border-radius: 25px;
+            color: var(--bg-deep);
+            padding: 12px 28px;
+            border-radius: 50px;
             cursor: pointer;
-            font-size: 16px;
-            margin-top: 15px;
-            transition: transform 0.2s;
+            font-size: 14px;
+            font-weight: 600;
+            margin-top: 20px;
+            font-family: var(--font-display);
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            transition: background 0.2s var(--ease-out-expo);
             touch-action: manipulation;
         }
 
-        .btn:hover, .btn:active {
-            transform: scale(1.05);
+        .btn:hover {
+            background: #ff5a73;
+        }
+
+        .btn:active {
+            background: #e6324e;
         }
 
         .wave-indicator {
-            font-size: 14px;
-            color: #ffd700;
-            margin-bottom: 8px;
+            font-size: 12px;
+            color: var(--accent-amber);
+            margin-bottom: 6px;
+            font-family: var(--font-mono);
+            letter-spacing: 0.05em;
         }
 
         .power-up-indicator {
-            font-size: 12px;
-            color: #00ff88;
-            margin-bottom: 5px;
-            min-height: 18px;
+            font-size: 11px;
+            color: var(--accent-mint);
+            margin-bottom: 4px;
+            min-height: 16px;
+            font-family: var(--font-mono);
         }
 
         .live-stats {
-            margin-top: 8px;
+            margin-top: 6px;
             font-size: 10px;
             text-align: center;
-            background: rgba(0, 0, 0, 0.3);
-            padding: 8px;
-            border-radius: 6px;
+            background: var(--bg-deep);
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
             display: flex;
             justify-content: space-around;
             align-items: center;
             flex-wrap: wrap;
+            font-family: var(--font-mono);
+            border: 1px solid var(--border-subtle);
         }
 
         .stat-item {
             margin: 2px 5px;
-            color: #00ff88;
-            font-weight: bold;
+            color: var(--accent-mint);
+            font-weight: 500;
         }
 
         .stat-item.highlight {
-            color: #ffd700;
+            color: var(--accent-amber);
         }
 
         .combo-indicator {
             position: absolute;
-            top: 20px;
+            top: 16px;
             right: 20px;
-            font-size: 20px;
-            font-weight: bold;
-            color: #ff6b6b;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            font-family: var(--font-display);
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--accent-coral);
+            letter-spacing: 0.04em;
             z-index: 100;
+            pointer-events: none;
         }
 
         .pause-overlay {
@@ -225,80 +328,79 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(8, 8, 14, 0.92);
             display: none;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            font-size: 36px;
-            color: white;
             z-index: 999;
             cursor: pointer;
             touch-action: manipulation;
             user-select: none;
         }
 
-        .pause-content {
-            text-align: center;
-            padding: 20px;
-        }
-
         .pause-title {
-            font-size: 48px;
-            margin-bottom: 20px;
-            color: #ffd700;
-            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+            font-family: var(--font-display);
+            font-size: 52px;
+            margin-bottom: 16px;
+            color: var(--accent-amber);
+            letter-spacing: 0.12em;
+            font-weight: 700;
         }
 
         .pause-subtitle {
-            font-size: 18px;
-            opacity: 0.8;
-            margin-bottom: 20px;
+            font-size: 16px;
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+            font-family: var(--font-body);
         }
 
         .pause-controls {
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 14px;
             align-items: center;
         }
 
         .resume-btn {
-            background: linear-gradient(45deg, #28a745, #20c997);
+            background: var(--accent-mint);
             border: none;
-            color: white;
-            padding: 15px 30px;
-            border-radius: 25px;
+            color: var(--bg-deep);
+            padding: 14px 32px;
+            border-radius: 50px;
             cursor: pointer;
-            font-size: 18px;
-            transition: transform 0.2s;
+            font-size: 16px;
+            font-weight: 600;
+            font-family: var(--font-display);
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            transition: background 0.2s var(--ease-out-expo);
             touch-action: manipulation;
         }
 
-        .resume-btn:hover, .resume-btn:active {
-            transform: scale(1.05);
-        }
+        .resume-btn:hover { background: #3ddb84; }
+        .resume-btn:active { background: #27ae60; }
 
         .pause-sound-toggle {
-            background: rgba(255, 255, 255, 0.2);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            color: white;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-primary);
             padding: 12px;
             border-radius: 50%;
             cursor: pointer;
             font-size: 20px;
-            width: 55px;
-            height: 55px;
+            width: 52px;
+            height: 52px;
             display: flex;
             align-items: center;
             justify-content: center;
             touch-action: manipulation;
-            transition: all 0.2s;
+            transition: border-color 0.2s var(--ease-out-expo);
         }
 
         .pause-sound-toggle.muted {
-            background: rgba(220, 53, 69, 0.3);
-            border-color: rgba(220, 53, 69, 0.5);
+            border-color: var(--text-muted);
+            color: var(--text-muted);
         }
 
         .wave-transition {
@@ -307,43 +409,47 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.9);
+            background: rgba(8, 8, 14, 0.95);
             display: none;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             z-index: 1500;
-            color: white;
+            color: var(--text-primary);
             text-align: center;
         }
 
         .wave-transition h2 {
+            font-family: var(--font-display);
             font-size: 3rem;
-            margin-bottom: 20px;
-            color: #ffd700;
-            text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+            margin-bottom: 16px;
+            color: var(--accent-amber);
+            letter-spacing: 0.08em;
+            font-weight: 700;
         }
 
         .wave-transition p {
-            font-size: 1.2rem;
-            margin-bottom: 30px;
-            opacity: 0.9;
+            font-size: 1.1rem;
+            margin-bottom: 28px;
+            color: var(--text-secondary);
+            font-family: var(--font-body);
         }
 
         .wave-progress {
-            width: 300px;
-            height: 10px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 5px;
+            width: 280px;
+            height: 4px;
+            background: var(--bg-elevated);
+            border-radius: 2px;
             overflow: hidden;
-            margin: 20px 0;
+            margin: 16px 0;
         }
 
         .wave-progress-bar {
             height: 100%;
-            background: linear-gradient(90deg, #00d2d3, #ffd700);
+            background: var(--accent-coral);
             width: 0%;
-            transition: width 0.1s ease;
+            transition: width 0.05s linear;
+            border-radius: 2px;
         }
 
         .start-screen {
@@ -352,349 +458,317 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.85);
+            background: rgba(8, 8, 14, 0.9);
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             z-index: 2000;
-            padding: 20px;
+            padding: 24px;
             text-align: center;
         }
 
         .start-screen h1 {
-            font-size: 2.5rem;
-            margin-bottom: 20px;
-            color: #ffd700;
-            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+            font-family: var(--font-display);
+            font-size: 2.4rem;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+            letter-spacing: 0.1em;
+            font-weight: 800;
         }
 
-        .start-screen p {
-            margin: 10px 0;
-            max-width: 600px;
-            line-height: 1.6;
+        .start-screen h1 span {
+            color: var(--accent-coral);
+        }
+
+        .start-screen .tagline {
+            margin: 8px 0 20px;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            max-width: 500px;
+            line-height: 1.5;
+            font-family: var(--font-body);
         }
 
         .best-score {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 15px 30px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            padding: 14px 32px;
             border-radius: 50px;
-            margin: 20px 0;
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: #00ff88;
+            margin: 16px 0;
+            font-family: var(--font-mono);
+            font-size: 1.2rem;
+            font-weight: 500;
+            color: var(--accent-amber);
+            letter-spacing: 0.04em;
         }
 
         .start-controls {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 20px;
-            margin: 20px 0;
+            gap: 16px;
+            margin: 16px 0;
         }
 
+        .start-btn {
+            background: var(--accent-coral);
+            border: none;
+            color: var(--bg-deep);
+            padding: 16px 40px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 700;
+            font-family: var(--font-display);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            transition: background 0.2s var(--ease-out-expo);
+            touch-action: manipulation;
+        }
+
+        .start-btn:hover { background: #ff5a73; }
+        .start-btn:active { background: #e6324e; }
+
         .start-sound-toggle {
-            background: rgba(255, 255, 255, 0.2);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            color: white;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-primary);
             padding: 12px;
             border-radius: 50%;
             cursor: pointer;
-            font-size: 24px;
-            width: 60px;
-            height: 60px;
+            font-size: 22px;
+            width: 52px;
+            height: 52px;
             display: flex;
             align-items: center;
             justify-content: center;
             touch-action: manipulation;
-            transition: all 0.2s;
+            transition: border-color 0.2s var(--ease-out-expo);
         }
 
         .start-sound-toggle.muted {
-            background: rgba(220, 53, 69, 0.3);
-            border-color: rgba(220, 53, 69, 0.5);
+            border-color: var(--text-muted);
+            color: var(--text-muted);
         }
 
         .footer {
             margin-top: 20px;
             display: flex;
             justify-content: center;
-            gap: 30px;
+            gap: 28px;
         }
 
         .footer a {
-            color: #00d2d3;
+            color: var(--text-secondary);
             text-decoration: none;
-            font-size: 1rem;
+            font-size: 0.85rem;
             display: flex;
             align-items: center;
-            gap: 5px;
-            transition: all 0.3s;
+            gap: 6px;
+            transition: color 0.3s var(--ease-out-expo);
+            font-family: var(--font-body);
+            letter-spacing: 0.02em;
         }
 
         .footer a:hover {
-            color: #ff6b6b;
-            transform: translateY(-2px);
-        }
-
-        .footer a i {
-            font-size: 1.2rem;
+            color: var(--accent-coral);
         }
 
         .sound-toggle {
             position: absolute;
             top: 10px;
             left: 10px;
-            background: rgba(255, 255, 255, 0.2);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            color: white;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-primary);
             padding: 10px;
             border-radius: 50%;
             cursor: pointer;
-            font-size: 20px;
-            width: 50px;
-            height: 50px;
+            font-size: 18px;
+            width: 44px;
+            height: 44px;
             display: flex;
             align-items: center;
             justify-content: center;
             touch-action: manipulation;
             user-select: none;
-            transition: all 0.2s;
+            transition: border-color 0.2s var(--ease-out-expo);
             z-index: 200;
         }
 
         .sound-toggle.muted {
-            background: rgba(220, 53, 69, 0.3);
-            border-color: rgba(220, 53, 69, 0.5);
+            border-color: var(--text-muted);
+            color: var(--text-muted);
         }
 
         .sound-toggle:active {
-            transform: scale(0.95);
+            border-color: var(--border-active);
         }
 
-        /* Mobile-specific styles */
-        @media (max-width: 768px) {
-            .game-container {
-                padding: 5px;
-                border-radius: 0;
-                height: 100vh;
-            }
-
-            .mobile-controls {
-                display: flex;
-            }
-
-            .ui {
-                font-size: 14px;
-            }
-
-            .wave-indicator {
-                font-size: 12px;
-            }
-
-            .power-up-indicator {
-                font-size: 10px;
-            }
-
-            .live-stats {
-                font-size: 9px;
-                padding: 6px;
-            }
-
-            .combo-indicator {
-                font-size: 16px;
-                top: 10px;
-                right: 10px;
-            }
-
-            .pause-overlay {
-                font-size: 28px;
-            }
-
-            .pause-title {
-                font-size: 36px;
-            }
-
-            .pause-subtitle {
-                font-size: 16px;
-            }
-
-            .wave-transition h2 {
-                font-size: 2rem;
-            }
-
-            .wave-transition p {
-                font-size: 1rem;
-            }
-
-            .wave-progress {
-                width: 250px;
-            }
-
-            .start-screen h1 {
-                font-size: 1.8rem;
-            }
-
-            .start-screen p {
-                font-size: 0.9rem;
-            }
-
-            .best-score {
-                font-size: 1.2rem;
-                padding: 10px 20px;
-            }
-
-            .footer {
-                flex-direction: column;
-                gap: 15px;
-                margin-top: 15px;
-            }
-
-            .btn {
-                padding: 12px 24px;
-                font-size: 18px;
-            }
-
-            .sound-toggle {
-                width: 45px;
-                height: 45px;
-                font-size: 18px;
-            }
-
-            .start-sound-toggle {
-                width: 55px;
-                height: 55px;
-                font-size: 22px;
-            }
-        }
-
-        @media (max-height: 600px) {
-            .live-stats {
-                padding: 4px;
-                font-size: 8px;
-            }
-
-            .controls {
-                font-size: 10px;
-            }
-        }
-
-        /* New best score notification */
         .new-best-notification {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: linear-gradient(45deg, #00ff88, #00d2d3);
-            color: white;
-            padding: 20px 40px;
-            border-radius: 15px;
-            font-size: 1.5rem;
-            font-weight: bold;
-            box-shadow: 0 8px 32px rgba(0, 255, 136, 0.3);
+            background: var(--accent-amber);
+            color: var(--bg-deep);
+            padding: 18px 36px;
+            border-radius: var(--radius-md);
+            font-family: var(--font-display);
+            font-size: 1.3rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
             z-index: 3000;
-            animation: newBestPulse 2s ease-in-out;
+            animation: newBestPop 2s var(--ease-out-expo) forwards;
             pointer-events: none;
         }
 
-        @keyframes newBestPulse {
+        @keyframes newBestPop {
             0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
-            50% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+            30% { opacity: 1; transform: translate(-50%, -50%) scale(1.08); }
+            50% { transform: translate(-50%, -50%) scale(0.97); }
+            70% { transform: translate(-50%, -50%) scale(1.02); }
             100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
         }
 
-        /* Blue glow for laser power-up */
-        .laser-glow {
-            animation: laserPulse 1s ease-in-out infinite alternate;
-        }
-
-        @keyframes laserPulse {
-            from { box-shadow: 0 0 15px rgba(0, 210, 211, 0.7); }
-            to { box-shadow: 0 0 25px rgba(0, 210, 211, 1); }
-        }
-
-        /* Speed indicator */
         .speed-indicator {
             position: absolute;
             bottom: 10px;
             right: 10px;
-            font-size: 14px;
-            color: #ffd700;
-            background: rgba(0, 0, 0, 0.3);
-            padding: 5px 10px;
-            border-radius: 10px;
+            font-family: var(--font-mono);
+            font-size: 12px;
+            color: var(--accent-amber);
+            background: var(--bg-deep);
+            border: 1px solid var(--border-subtle);
+            padding: 4px 10px;
+            border-radius: var(--radius-sm);
             z-index: 100;
+            letter-spacing: 0.03em;
         }
 
-        /* Magnet indicator */
         .magnet-indicator {
             position: absolute;
             top: 10px;
-            left: 70px;
-            font-size: 24px;
-            color: #ff6b6b;
-            text-shadow: 0 0 10px rgba(255, 107, 107, 0.7);
+            left: 62px;
+            font-size: 22px;
+            color: var(--accent-coral);
             z-index: 100;
             display: none;
-            animation: magnetPulse 1.5s infinite alternate;
+            animation: magnetPulse 1.5s ease-in-out infinite alternate;
         }
 
         @keyframes magnetPulse {
-            0% { transform: scale(1); opacity: 0.8; }
-            100% { transform: scale(1.2); opacity: 1; }
+            0% { transform: scale(1); opacity: 0.7; }
+            100% { transform: scale(1.15); opacity: 1; }
         }
 
-        /* Cheat code notification */
         .cheat-notification {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: linear-gradient(45deg, #ff9ff3, #fd79a8);
-            color: white;
-            padding: 15px 30px;
-            border-radius: 15px;
-            font-size: 1.2rem;
-            font-weight: bold;
-            box-shadow: 0 8px 32px rgba(253, 121, 168, 0.4);
+            background: var(--accent-violet);
+            color: var(--text-primary);
+            padding: 14px 28px;
+            border-radius: var(--radius-md);
+            font-family: var(--font-display);
+            font-size: 1rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
             z-index: 2500;
-            animation: cheatPulse 2s ease-in-out;
+            animation: cheatPop 2s var(--ease-out-expo) forwards;
             pointer-events: none;
             display: none;
         }
 
-        @keyframes cheatPulse {
+        @keyframes cheatPop {
             0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
-            50% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+            30% { opacity: 1; transform: translate(-50%, -50%) scale(1.08); }
+            50% { transform: translate(-50%, -50%) scale(0.97); }
+            70% { transform: translate(-50%, -50%) scale(1.02); }
             100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+        }
+
+        /* Score popup animation */
+        .score-popup {
+            position: absolute;
+            pointer-events: none;
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: var(--accent-amber);
+            letter-spacing: 0.04em;
+            z-index: 500;
+            animation: scoreFloat 1s var(--ease-out-expo) forwards;
+        }
+
+        @keyframes scoreFloat {
+            0% { opacity: 1; transform: translateY(0) scale(0.5); }
+            30% { opacity: 1; transform: translateY(-20px) scale(1.2); }
+            100% { opacity: 0; transform: translateY(-60px) scale(0.8); }
+        }
+
+        @media (max-width: 768px) {
+            .game-container {
+                padding: 6px;
+                border-radius: 0;
+                height: 100vh;
+                border: none;
+            }
+
+            .mobile-controls { display: flex; }
+
+            .ui { font-size: 11px; }
+            .wave-indicator { font-size: 10px; }
+            .power-up-indicator { font-size: 9px; }
+            .live-stats { font-size: 8px; padding: 6px; }
+            .combo-indicator { font-size: 14px; top: 8px; right: 8px; }
+
+            .pause-title { font-size: 36px; }
+            .pause-subtitle { font-size: 14px; }
+
+            .wave-transition h2 { font-size: 1.8rem; }
+            .wave-transition p { font-size: 0.9rem; }
+            .wave-progress { width: 220px; }
+
+            .start-screen h1 { font-size: 1.6rem; }
+            .start-screen .tagline { font-size: 0.8rem; }
+            .best-score { font-size: 1rem; padding: 10px 20px; }
+
+            .footer { flex-direction: column; gap: 12px; margin-top: 12px; }
+            .btn { padding: 12px 24px; font-size: 13px; }
+            .sound-toggle { width: 38px; height: 38px; font-size: 16px; }
+            .start-sound-toggle { width: 46px; height: 46px; font-size: 20px; }
+            .start-btn { padding: 14px 32px; font-size: 14px; }
+        }
+
+        @media (max-height: 600px) {
+            .live-stats { padding: 4px; font-size: 8px; }
+            .controls { font-size: 9px; }
         }
     </style>
 </head>
 <body>
     <div class="game-container">
-        <button class="sound-toggle" id="soundToggle">🔊</button>
+        <div class="sound-toggle" id="soundToggle">🔊</div>
         <div class="magnet-indicator" id="magnetIndicator">🧲</div>
-        <div class="cheat-notification" id="cheatNotification">MAGNET CHEAT ACTIVATED!</div>
+        <div class="cheat-notification" id="cheatNotification">MAGNET ACTIVATED</div>
 
         <div class="start-screen" id="startScreen">
-            <h1>ULTIMATE BREAKOUT </h1>
-            <p>Destroy all bricks without losing your balls! Collect power-ups for special abilities.</p>
+            <h1>ULTIMATE<span> BREAKOUT</span></h1>
+            <p class="tagline">Destroy every brick. Chain combos. Push your limits.</p>
 
-
-            <div class="best-score">Best Score: <span id="bestScore">0</span></div>
+            <div class="best-score">Best <span id="bestScore">0</span></div>
 
             <div class="start-controls">
                 <button class="start-sound-toggle" id="startSoundToggle">🔊</button>
-                <button class="btn" id="startBtn">START GAME</button>
+                <button class="start-btn" id="startBtn">Start Game</button>
             </div>
 
             <div class="footer">
-                <a href="https://hhhpraise.github.io/portfolio/" target="_blank">
-                    <i>👨‍💻</i> My Portfolio
-                </a>
-                <a href="mailto:hhhpraise33@gmail.com">
-                    <i>✉️</i> Send Suggestions
-                </a>
+                <a href="https://hhhpraise.github.io/portfolio/" target="_blank">Portfolio</a>
+                <a href="mailto:hhhpraise33@gmail.com">Send Feedback</a>
             </div>
         </div>
 
@@ -741,13 +815,11 @@
         <div class="combo-indicator" id="comboDisplay" style="display: none;"></div>
 
         <div class="pause-overlay" id="pauseOverlay">
-            <div class="pause-content">
-                <div class="pause-title">PAUSED</div>
-                <div class="pause-subtitle">Game is paused</div>
-                <div class="pause-controls">
-                    <button class="pause-sound-toggle" id="pauseSoundToggle">🔊</button>
-                    <button class="resume-btn" id="resumeBtn">RESUME GAME</button>
-                </div>
+            <div class="pause-title">PAUSED</div>
+            <div class="pause-subtitle">Take a breather</div>
+            <div class="pause-controls">
+                <button class="pause-sound-toggle" id="pauseSoundToggle">🔊</button>
+                <button class="resume-btn" id="resumeBtn">Resume</button>
             </div>
         </div>
 
@@ -914,7 +986,7 @@
         function showNewBestNotification() {
             const notification = document.createElement('div');
             notification.className = 'new-best-notification';
-            notification.textContent = '🎉 NEW BEST SCORE! 🎉';
+            notification.textContent = 'NEW BEST SCORE';
             document.body.appendChild(notification);
 
             setTimeout(() => {
@@ -1038,6 +1110,79 @@
         let gameStartTime = 0;
         let totalBricksInWave = 0;
         let gameLoopId = null; // Track animation frame ID
+
+        // Screen shake state
+        let screenShake = { intensity: 0, duration: 0 };
+
+        // Floating score popups (DOM-based, rendered above canvas)
+        let scorePopups = [];
+
+        // Ambient background particles (decorative, behind gameplay)
+        let ambientParticles = [];
+
+        function initAmbientParticles() {
+            ambientParticles = [];
+            const count = 50;
+            for (let i = 0; i < count; i++) {
+                ambientParticles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    vx: (Math.random() - 0.5) * 0.3,
+                    vy: (Math.random() - 0.5) * 0.3 - 0.15,
+                    radius: 0.3 + Math.random() * 1.2,
+                    alpha: 0.15 + Math.random() * 0.35,
+                    twinkleSpeed: 0.005 + Math.random() * 0.02,
+                    twinkleOffset: Math.random() * Math.PI * 2
+                });
+            }
+        }
+
+        function updateAmbientParticles() {
+            if (gamePaused || waveTransitioning) return;
+            ambientParticles.forEach(p => {
+                p.x += p.vx;
+                p.y += p.vy;
+                if (p.x < -10) p.x = canvas.width + 10;
+                if (p.x > canvas.width + 10) p.x = -10;
+                if (p.y < -10) p.y = canvas.height + 10;
+                if (p.y > canvas.height + 10) p.y = -10;
+            });
+        }
+
+        function drawAmbientParticles() {
+            ambientParticles.forEach(p => {
+                const twinkle = Math.sin(Date.now() * p.twinkleSpeed + p.twinkleOffset) * 0.5 + 0.5;
+                const alpha = p.alpha * (0.4 + twinkle * 0.6);
+                ctx.save();
+                ctx.globalAlpha = alpha;
+                ctx.fillStyle = '#b347ea';
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            });
+        }
+
+        function triggerScreenShake(intensity, duration) {
+            screenShake.intensity = Math.max(screenShake.intensity, intensity);
+            screenShake.duration = Math.max(screenShake.duration, duration);
+        }
+
+        function spawnScorePopup(x, y, points, color) {
+            const popup = document.createElement('div');
+            popup.className = 'score-popup';
+            popup.textContent = `+${points}`;
+            popup.style.left = x + 'px';
+            popup.style.top = y + 'px';
+            if (color) popup.style.color = color;
+            document.querySelector('.game-container').appendChild(popup);
+            scorePopups.push({ el: popup, life: 1 });
+
+            setTimeout(() => {
+                if (popup.parentNode) popup.parentNode.removeChild(popup);
+                scorePopups = scorePopups.filter(sp => sp.el !== popup);
+            }, 1000);
+        }
 
         // Particles system
         let particles = [];
@@ -2110,6 +2255,13 @@
                     brick.visible = false;
                     score += brick.points;
 
+                    // Score popup
+                    const popupColor = brick.type === 'metal' ? '#d4d4dc' :
+                                      brick.type === 'explosive' ? '#ff3d5c' : '#ffb800';
+                    if (brick.type !== 'explosive') {
+                        spawnScorePopup(brick.x + brick.width / 2, brick.y, brick.points, popupColor);
+                    }
+
                     // Update combo
                     const now = Date.now();
                     if (now - lastHitTime < 1000) {
@@ -2137,6 +2289,8 @@
                     if (brick.type === 'explosive') {
                         playSound(100, 0.3);
                         createExplosion(brick.x + brick.width/2, brick.y + brick.height/2);
+                        triggerScreenShake(6, 12);
+                        spawnScorePopup(brick.x + brick.width / 2, brick.y, brick.points, '#ff3d5c');
                         // Damage nearby bricks
                         bricks.forEach(nearbyBrick => {
                             if (nearbyBrick.visible && nearbyBrick !== brick) {
@@ -2605,56 +2759,156 @@
 
             ctx.save();
 
-            // Shadow effect
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-            ctx.shadowBlur = 4;
-            ctx.shadowOffsetX = 2;
-            ctx.shadowOffsetY = 2;
+            const x = brick.x, y = brick.y, w = brick.width, h = brick.height;
 
-            // Brick color based on damage
-            let alpha = 1;
-            if (brick.maxHits > 1) {
-                alpha = brick.hits / brick.maxHits;
-            }
+            // Main brick body with subtle gradient
+            const brickGrad = ctx.createLinearGradient(x, y, x, y + h);
 
-            ctx.fillStyle = brick.color + Math.floor(alpha * 255).toString(16).padStart(2, '0');
-            ctx.fillRect(brick.x, brick.y, brick.width, brick.height);
-
-            // Special effects for brick types
-            if (brick.type === 'metal') {
-                ctx.strokeStyle = '#c0c0c0';
-                ctx.lineWidth = 2;
-                ctx.strokeRect(brick.x, brick.y, brick.width, brick.height);
+            if (brick.type === 'unbreakable') {
+                brickGrad.addColorStop(0, '#3d3d4a');
+                brickGrad.addColorStop(1, '#1f1f28');
             } else if (brick.type === 'explosive') {
-                ctx.fillStyle = '#ff4757';
-                ctx.font = '12px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillText('💥', brick.x + brick.width/2, brick.y + brick.height/2 + 4);
-            } else if (brick.type === 'unbreakable') {
-                ctx.fillStyle = '#fff';
-                ctx.font = '10px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillText('⚡', brick.x + brick.width/2, brick.y + brick.height/2 + 3);
+                brickGrad.addColorStop(0, '#ff5e6b');
+                brickGrad.addColorStop(0.5, '#ff3d5c');
+                brickGrad.addColorStop(1, '#d6303e');
+            } else if (brick.type === 'metal') {
+                brickGrad.addColorStop(0, '#d4d4dc');
+                brickGrad.addColorStop(1, '#8b8896');
+            } else {
+                let alpha = brick.maxHits > 1 ? brick.hits / brick.maxHits : 1;
+                alpha = Math.max(0.5, alpha);
+                ctx.globalAlpha = 0.6 + alpha * 0.4;
+                brickGrad.addColorStop(0, brick.color);
+                brickGrad.addColorStop(1, brick.color + '88');
             }
 
-            // Damage indicator
-            if (brick.maxHits > 1 && brick.hits < brick.maxHits) {
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-                ctx.font = 'bold 10px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillText(brick.hits.toString(), brick.x + brick.width/2, brick.y + brick.height/2 + 3);
+            // Rounded rect
+            const r = 2;
+            ctx.beginPath();
+            ctx.moveTo(x + r, y);
+            ctx.lineTo(x + w - r, y);
+            ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+            ctx.lineTo(x + w, y + h - r);
+            ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+            ctx.lineTo(x + r, y + h);
+            ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+            ctx.lineTo(x, y + r);
+            ctx.quadraticCurveTo(x, y, x + r, y);
+            ctx.closePath();
+
+            ctx.fillStyle = brickGrad;
+            ctx.fill();
+
+            // Top highlight bevel
+            const highlightGrad = ctx.createLinearGradient(x, y, x, y + h);
+            highlightGrad.addColorStop(0, 'rgba(255,255,255,0.25)');
+            highlightGrad.addColorStop(0.3, 'rgba(255,255,255,0.05)');
+            highlightGrad.addColorStop(1, 'rgba(0,0,0,0.1)');
+            ctx.fillStyle = highlightGrad;
+            ctx.fill();
+
+            // Border
+            ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            // Type-specific indicators
+            if (brick.type === 'metal') {
+                ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+                ctx.lineWidth = 1.5;
+                ctx.setLineDash([3, 3]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            } else if (brick.type === 'explosive') {
+                // Pulsing glow
+                const pulse = Math.sin(Date.now() * 0.006) * 0.5 + 0.5;
+                ctx.shadowColor = '#ff3d5c';
+                ctx.shadowBlur = 4 + pulse * 6;
+                ctx.fillStyle = '#ff3d5c';
+                ctx.globalAlpha = 0.3 + pulse * 0.3;
+                ctx.fill();
+                ctx.globalAlpha = 1;
+                ctx.shadowBlur = 0;
+                // Cross pattern
+                ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(x + 4, y + 4);
+                ctx.lineTo(x + w - 4, y + h - 4);
+                ctx.moveTo(x + w - 4, y + 4);
+                ctx.lineTo(x + 4, y + h - 4);
+                ctx.stroke();
+            } else if (brick.type === 'unbreakable') {
+                ctx.strokeStyle = 'rgba(180,180,200,0.4)';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+            }
+
+            // Damage cracks
+            if (brick.maxHits > 1 && brick.hits < brick.maxHits && brick.hits > 0) {
+                const damageAlpha = 1 - (brick.hits / brick.maxHits);
+                ctx.strokeStyle = `rgba(0,0,0,${0.2 + damageAlpha * 0.4})`;
+                ctx.lineWidth = 0.8;
+                ctx.beginPath();
+                ctx.moveTo(x + w * 0.3, y + 2);
+                ctx.lineTo(x + w * 0.5, y + h * 0.5);
+                ctx.lineTo(x + w * 0.7, y + h - 2);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(x + w * 0.6, y + 2);
+                ctx.lineTo(x + w * 0.4, y + h * 0.6);
+                ctx.lineTo(x + w * 0.3, y + h - 2);
+                ctx.stroke();
             }
 
             ctx.restore();
         }
 
         function draw() {
-            // Clear canvas with gradient background
-            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-            gradient.addColorStop(0, '#0f0f23');
-            gradient.addColorStop(1, '#1a1a2e');
-            ctx.fillStyle = gradient;
+            ctx.save();
+
+            // Screen shake
+            if (screenShake.duration > 0) {
+                const sx = (Math.random() - 0.5) * screenShake.intensity * 2;
+                const sy = (Math.random() - 0.5) * screenShake.intensity * 2;
+                ctx.translate(sx, sy);
+                screenShake.intensity *= 0.85;
+                screenShake.duration--;
+                if (screenShake.duration <= 0) {
+                    screenShake.intensity = 0;
+                    screenShake.duration = 0;
+                }
+            }
+
+            // Background - deep dark with subtle wave color bleed
+            const bgGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            bgGrad.addColorStop(0, '#08080e');
+            bgGrad.addColorStop(0.5, '#0c0c16');
+            bgGrad.addColorStop(1, '#0a0a12');
+            ctx.fillStyle = bgGrad;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Ambient particle field
+            drawAmbientParticles();
+
+            // Subtle grid lines
+            ctx.strokeStyle = 'rgba(255,255,255,0.015)';
+            ctx.lineWidth = 0.5;
+            const gridSize = 40;
+            for (let gx = gridSize; gx < canvas.width; gx += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(gx, 0);
+                ctx.lineTo(gx, canvas.height);
+                ctx.stroke();
+            }
+            for (let gy = gridSize; gy < canvas.height; gy += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, gy);
+                ctx.lineTo(canvas.width, gy);
+                ctx.stroke();
+            }
+
+            ctx.restore();
 
             // Draw animated brick entrance
             animateBricksIn();
@@ -2688,57 +2942,93 @@
             explosions.forEach(explosion => {
                 ctx.save();
                 ctx.globalAlpha = explosion.life;
-                ctx.strokeStyle = '#ff4757';
-                ctx.lineWidth = 3;
+                // Outer ring
+                ctx.strokeStyle = '#ff3d5c';
+                ctx.lineWidth = 2;
                 ctx.beginPath();
                 ctx.arc(explosion.x, explosion.y, explosion.radius, 0, Math.PI * 2);
+                ctx.stroke();
+                // Inner ring
+                ctx.strokeStyle = '#ffb800';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.arc(explosion.x, explosion.y, explosion.radius * 0.6, 0, Math.PI * 2);
                 ctx.stroke();
                 ctx.restore();
             });
 
             // Draw paddle trail
-            paddle.trail.forEach((trail, index) => {
+            paddle.trail.forEach((trail) => {
                 ctx.save();
-                ctx.globalAlpha = trail.life * 0.5;
-                ctx.fillStyle = paddle.glowing ? '#ffd700' : (paddle.laserGlow ? '#00d2d3' : '#fff');
+                ctx.globalAlpha = trail.life * 0.4;
+                ctx.fillStyle = paddle.glowing ? '#ffb800' : (paddle.laserGlow ? '#00c8d6' : '#f0edf2');
                 ctx.beginPath();
-                ctx.arc(trail.x, trail.y, 3, 0, Math.PI * 2);
+                ctx.arc(trail.x, trail.y, 2.5, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.restore();
             });
 
-            // Draw paddle with blue glow for laser power-up
+            // Draw paddle
             ctx.save();
+            const paddleGrad = ctx.createLinearGradient(paddle.x, paddle.y, paddle.x, paddle.y + paddle.height);
             if (paddle.glowing) {
-                ctx.shadowColor = '#ffd700';
-                ctx.shadowBlur = 20;
+                paddleGrad.addColorStop(0, '#ffb800');
+                paddleGrad.addColorStop(1, '#cc9200');
+                ctx.shadowColor = 'rgba(255, 184, 0, 0.6)';
+                ctx.shadowBlur = 16;
             } else if (paddle.laserGlow) {
-                ctx.shadowColor = '#00d2d3';
-                ctx.shadowBlur = 15;
+                paddleGrad.addColorStop(0, '#00c8d6');
+                paddleGrad.addColorStop(1, '#0099a8');
+                ctx.shadowColor = 'rgba(0, 200, 214, 0.5)';
+                ctx.shadowBlur = 12;
+            } else {
+                paddleGrad.addColorStop(0, '#f0edf2');
+                paddleGrad.addColorStop(1, '#b8b4c0');
             }
-            ctx.fillStyle = paddle.glowing ? '#ffd700' : (paddle.laserGlow ? '#00d2d3' : paddle.color);
-            ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
+            const pr = 3;
+            ctx.beginPath();
+            ctx.moveTo(paddle.x + pr, paddle.y);
+            ctx.lineTo(paddle.x + paddle.width - pr, paddle.y);
+            ctx.quadraticCurveTo(paddle.x + paddle.width, paddle.y, paddle.x + paddle.width, paddle.y + pr);
+            ctx.lineTo(paddle.x + paddle.width, paddle.y + paddle.height - pr);
+            ctx.quadraticCurveTo(paddle.x + paddle.width, paddle.y + paddle.height, paddle.x + paddle.width - pr, paddle.y + paddle.height);
+            ctx.lineTo(paddle.x + pr, paddle.y + paddle.height);
+            ctx.quadraticCurveTo(paddle.x, paddle.y + paddle.height, paddle.x, paddle.y + paddle.height - pr);
+            ctx.lineTo(paddle.x, paddle.y + pr);
+            ctx.quadraticCurveTo(paddle.x, paddle.y, paddle.x + pr, paddle.y);
+            ctx.closePath();
+            ctx.fillStyle = paddleGrad;
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
             ctx.restore();
 
             // Draw ball trail
-            ball.trail.forEach((trail, index) => {
+            ball.trail.forEach((trail) => {
                 ctx.save();
-                ctx.globalAlpha = trail.life * 0.6;
-                ctx.fillStyle = ball.fireBall ? '#ff4757' : '#fff';
-                const size = (trail.life * ball.radius) * 0.8;
+                ctx.globalAlpha = trail.life * 0.5;
+                ctx.fillStyle = ball.fireBall ? '#ff3d5c' : '#f0edf2';
+                const size = (trail.life * ball.radius) * 0.7;
                 ctx.beginPath();
                 ctx.arc(trail.x, trail.y, size, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.restore();
             });
 
-            // Draw main ball
+            // Draw main ball with inner glow
             ctx.save();
-            if (ball.fireBall) {
-                ctx.shadowColor = '#ff4757';
-                ctx.shadowBlur = 15;
-            }
-            ctx.fillStyle = ball.fireBall ? '#ff4757' : '#fff';
+            const ballGlowColor = ball.fireBall ? '#ff3d5c' : '#f0edf2';
+            ctx.shadowColor = ball.fireBall ? 'rgba(255, 61, 92, 0.7)' : 'rgba(240, 237, 242, 0.4)';
+            ctx.shadowBlur = ball.fireBall ? 16 : 8;
+            const ballGrad = ctx.createRadialGradient(
+                ball.x - ball.radius * 0.3, ball.y - ball.radius * 0.3, ball.radius * 0.1,
+                ball.x, ball.y, ball.radius
+            );
+            ballGrad.addColorStop(0, '#ffffff');
+            ballGrad.addColorStop(0.4, ballGlowColor);
+            ballGrad.addColorStop(1, ball.fireBall ? '#cc2030' : '#8b8896');
+            ctx.fillStyle = ballGrad;
             ctx.beginPath();
             ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
             ctx.fill();
@@ -2749,9 +3039,9 @@
                 // Draw trail
                 mb.trail.forEach(trail => {
                     ctx.save();
-                    ctx.globalAlpha = trail.life * 0.6;
-                    ctx.fillStyle = mb.fireBall ? '#ff4757' : '#4ecdc4';
-                    const size = (trail.life * mb.radius) * 0.8;
+                    ctx.globalAlpha = trail.life * 0.4;
+                    ctx.fillStyle = mb.fireBall ? '#ff3d5c' : '#00c8d6';
+                    const size = (trail.life * mb.radius) * 0.7;
                     ctx.beginPath();
                     ctx.arc(trail.x, trail.y, size, 0, Math.PI * 2);
                     ctx.fill();
@@ -2760,11 +3050,17 @@
 
                 // Draw ball
                 ctx.save();
-                if (mb.fireBall) {
-                    ctx.shadowColor = '#ff4757';
-                    ctx.shadowBlur = 15;
-                }
-                ctx.fillStyle = mb.fireBall ? '#ff4757' : '#4ecdc4';
+                const mbGlowColor = mb.fireBall ? '#ff3d5c' : '#00c8d6';
+                ctx.shadowColor = mb.fireBall ? 'rgba(255, 61, 92, 0.6)' : 'rgba(0, 200, 214, 0.4)';
+                ctx.shadowBlur = mb.fireBall ? 14 : 7;
+                const mbGrad = ctx.createRadialGradient(
+                    mb.x - mb.radius * 0.3, mb.y - mb.radius * 0.3, mb.radius * 0.1,
+                    mb.x, mb.y, mb.radius
+                );
+                mbGrad.addColorStop(0, '#ffffff');
+                mbGrad.addColorStop(0.4, mbGlowColor);
+                mbGrad.addColorStop(1, mb.fireBall ? '#cc2030' : '#008899');
+                ctx.fillStyle = mbGrad;
                 ctx.beginPath();
                 ctx.arc(mb.x, mb.y, mb.radius, 0, Math.PI * 2);
                 ctx.fill();
@@ -2774,14 +3070,15 @@
             // Draw lasers
             lasers.forEach(laser => {
                 ctx.save();
-                ctx.shadowColor = '#00d2d3';
+                // Outer glow
+                const laserGrad = ctx.createLinearGradient(laser.x, laser.y, laser.x, laser.y + laser.height);
+                laserGrad.addColorStop(0, '#ffffff');
+                laserGrad.addColorStop(0.3, '#00c8d6');
+                laserGrad.addColorStop(1, '#00c8d608');
+                ctx.shadowColor = 'rgba(0, 200, 214, 0.8)';
                 ctx.shadowBlur = 10;
-                ctx.fillStyle = '#00d2d3';
-                ctx.fillRect(laser.x, laser.y, laser.width, laser.height);
-
-                // Laser glow effect
-                ctx.fillStyle = '#ffffff';
-                ctx.fillRect(laser.x + 1, laser.y, laser.width - 2, laser.height);
+                ctx.fillStyle = laserGrad;
+                ctx.fillRect(laser.x - 1, laser.y - 2, laser.width + 2, laser.height + 2);
                 ctx.restore();
             });
 
@@ -2793,21 +3090,36 @@
                 const pulse = Math.sin(powerUp.pulse) * 0.2 + 1;
                 ctx.translate(powerUp.x + powerUp.width/2, powerUp.y + powerUp.height/2);
                 ctx.scale(pulse, pulse);
-                ctx.translate(-powerUp.width/2, -powerUp.height/2);
 
-                // Glow effect
+                // Glow
                 ctx.shadowColor = powerUp.color;
-                ctx.shadowBlur = 15;
+                ctx.shadowBlur = 12;
+
+                // Rounded rect
+                const pw = powerUp.width, ph = powerUp.height;
+                const pwR = 3;
+                ctx.beginPath();
+                ctx.moveTo(-pw/2 + pwR, -ph/2);
+                ctx.lineTo(pw/2 - pwR, -ph/2);
+                ctx.quadraticCurveTo(pw/2, -ph/2, pw/2, -ph/2 + pwR);
+                ctx.lineTo(pw/2, ph/2 - pwR);
+                ctx.quadraticCurveTo(pw/2, ph/2, pw/2 - pwR, ph/2);
+                ctx.lineTo(-pw/2 + pwR, ph/2);
+                ctx.quadraticCurveTo(-pw/2, ph/2, -pw/2, ph/2 - pwR);
+                ctx.lineTo(-pw/2, -ph/2 + pwR);
+                ctx.quadraticCurveTo(-pw/2, -ph/2, -pw/2 + pwR, -ph/2);
+                ctx.closePath();
 
                 ctx.fillStyle = powerUp.color;
-                ctx.fillRect(0, 0, powerUp.width, powerUp.height);
+                ctx.fill();
 
                 // Symbol
-                ctx.fillStyle = '#fff';
-                ctx.font = 'bold 12px Arial';
+                ctx.fillStyle = '#08080e';
+                ctx.font = 'bold 11px "JetBrains Mono", monospace';
                 ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
                 ctx.shadowBlur = 0;
-                ctx.fillText(powerUp.symbol, powerUp.width/2, powerUp.height/2 + 4);
+                ctx.fillText(powerUp.symbol, 0, 0);
 
                 ctx.restore();
             });
@@ -2823,6 +3135,7 @@
                 updateLasers();
                 updatePowerUps();
                 updateParticles();
+                updateAmbientParticles();
                 checkWaveComplete();
                 updateLiveStats();
             }
@@ -2834,6 +3147,7 @@
 
         // Initialize the game
         resizeCanvas();
+        initAmbientParticles();
         updateCanvasBackground();
 
         // Add restart button functionality
