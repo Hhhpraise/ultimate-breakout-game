@@ -7,6 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
     <style>
         :root {
             --bg-deep: #08080e;
@@ -530,6 +531,70 @@
         .start-btn:hover { background: #ff5a73; }
         .start-btn:active { background: #e6324e; }
 
+        .mode-selector {
+            display: flex;
+            gap: 4px;
+            background: var(--bg-elevated);
+            border-radius: 50px;
+            padding: 4px;
+            border: 1px solid var(--border-subtle);
+        }
+
+        .mode-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            padding: 10px 18px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            font-weight: 500;
+            letter-spacing: 0.03em;
+            transition: all 0.25s var(--ease-out-expo);
+            white-space: nowrap;
+            touch-action: manipulation;
+        }
+
+        .mode-btn.active {
+            background: var(--accent-coral);
+            color: var(--bg-deep);
+            font-weight: 700;
+        }
+
+        .mode-btn:hover:not(.active) {
+            color: var(--text-primary);
+            background: rgba(255,255,255,0.05);
+        }
+
+        .mode-desc {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            margin-top: 6px;
+            margin-bottom: 8px;
+            min-height: 18px;
+            font-family: var(--font-body);
+            letter-spacing: 0.02em;
+            transition: color 0.3s var(--ease-out-expo);
+        }
+
+        .ai-info {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: var(--bg-deep);
+            border: 1px solid var(--border-subtle);
+            padding: 6px 10px;
+            border-radius: var(--radius-sm);
+            font-family: var(--font-mono);
+            font-size: 10px;
+            color: var(--accent-cyan);
+            z-index: 100;
+            display: none;
+            letter-spacing: 0.03em;
+            pointer-events: none;
+        }
+
         .start-sound-toggle {
             background: var(--bg-elevated);
             border: 1px solid var(--border-subtle);
@@ -763,6 +828,12 @@
 
             <div class="start-controls">
                 <button class="start-sound-toggle" id="startSoundToggle">🔊</button>
+                <div class="mode-selector" id="modeSelector">
+                    <button class="mode-btn active" data-mode="human">Human</button>
+                    <button class="mode-btn" data-mode="ai-heuristic">AI (Smart)</button>
+                    <button class="mode-btn" data-mode="ai-neural">AI (Learning)</button>
+                </div>
+                <div class="mode-desc" id="modeDesc">Play manually with keyboard or touch</div>
                 <button class="start-btn" id="startBtn">Start Game</button>
             </div>
 
@@ -788,6 +859,7 @@
             <div>Combo: <span id="combo">0</span></div>
         </div>
         <canvas id="gameCanvas"></canvas>
+        <div class="ai-info" id="aiInfo"></div>
 
         <div class="speed-indicator">Speed: <span id="speedValue">100%</span></div>
 
@@ -953,22 +1025,61 @@
                          ('ontouchstart' in window) ||
                          (navigator.maxTouchPoints > 0);
 
-        // Best score management
+        // AI Heuristic Configuration
+        const AI_HEURISTIC = {
+            reactionFrames: 3,
+            precisionNoise: 0.05,
+            paddleTargetSpeed: 10,
+            interceptLookahead: 2000,
+            laserAggression: 0.7
+        };
+
+        // AI Neural Network Configuration
+        const AI_NEURAL = {
+            stateSize: 6,
+            actionSize: 3,
+            hiddenUnits1: 32,
+            hiddenUnits2: 16,
+            learningRate: 0.001,
+            gamma: 0.95,
+            epsilon: 1.0,
+            epsilonMin: 0.05,
+            epsilonDecay: 0.995,
+            batchSize: 32,
+            replayBufferSize: 5000,
+            targetUpdateFreq: 100,
+            trainInterval: 20,
+            modelSaveKey: 'breakout_ai_model',
+            trainingSaveKey: 'breakout_ai_training'
+        };
+
+        // Best score management - mode-aware
+        function getScoreKey() {
+            const suffixes = { 'human': '', 'ai-heuristic': '_ai_heuristic', 'ai-neural': '_ai_neural' };
+            return 'ultimateBreakoutBestScore' + (suffixes[gameMode] || '');
+        }
+
         function loadBestScore() {
             try {
-                const saved = parseInt(localStorage.getItem('ultimateBreakoutBestScore')) || 0;
+                const saved = parseInt(localStorage.getItem(getScoreKey())) || 0;
                 return saved;
             } catch (e) {
                 return 0;
             }
         }
 
-        function saveBestScore(score) {
+        function saveBestScore(scoreValue) {
             try {
-                localStorage.setItem('ultimateBreakoutBestScore', score.toString());
+                localStorage.setItem(getScoreKey(), scoreValue.toString());
             } catch (e) {
                 // Silent fail if localStorage is not available
             }
+        }
+
+        function updateBestScoreDisplay() {
+            bestScore = loadBestScore();
+            bestScoreElement.textContent = bestScore;
+            gameOverBestScoreElement.textContent = bestScore;
         }
 
         function checkAndUpdateBestScore(currentScore) {
@@ -1088,7 +1199,7 @@
 
         // Load best score
         let bestScore = loadBestScore();
-        bestScoreElement.textContent = bestScore;
+        updateBestScoreDisplay();
 
         // Show/hide controls based on device
         if (isMobile) {
@@ -1110,6 +1221,28 @@
         let gameStartTime = 0;
         let totalBricksInWave = 0;
         let gameLoopId = null; // Track animation frame ID
+
+        // AI Heuristic State
+        let aiTargetX = 0;
+        let aiReactionCounter = 0;
+        let aiInterceptX = null;
+        let aiInterceptY = null;
+
+        // AI Neural Network State
+        let aiModel = null;
+        let aiTargetModel = null;
+        let aiReplayBuffer = [];
+        let aiEpsilon = AI_NEURAL.epsilon;
+        let aiEpisodeCount = 0;
+        let aiStepCount = 0;
+        let aiLastState = null;
+        let aiLastAction = null;
+        let aiLastLoss = null;
+        let aiTrainingActive = false;
+        let aiIsTraining = false;
+        let aiFrameSkipCounter = 0;
+        let aiPrevScore = 0;
+        let aiPrevLives = 3;
 
         // Screen shake state
         let screenShake = { intensity: 0, duration: 0 };
@@ -1742,11 +1875,36 @@
             gameRunning = true;
             gameStartTime = Date.now();
             startScreen.style.display = 'none';
+            if (gameMode !== 'human') {
+                aiInfoElement.style.display = 'block';
+            }
             restartGame();
         }
 
         // Start button event listener
         startBtn.addEventListener('click', startGame);
+
+        // Mode selection
+        let gameMode = 'human'; // 'human' | 'ai-heuristic' | 'ai-neural'
+        const modeSelector = document.getElementById('modeSelector');
+        const modeDesc = document.getElementById('modeDesc');
+        const aiInfoElement = document.getElementById('aiInfo');
+
+        const modeDescriptions = {
+            'human': 'Play manually with keyboard or touch',
+            'ai-heuristic': 'AI predicts ball trajectory and moves paddle',
+            'ai-neural': 'AI learns to play via neural network + Q-learning'
+        };
+
+        modeSelector.addEventListener('click', (e) => {
+            const btn = e.target.closest('.mode-btn');
+            if (!btn) return;
+            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            gameMode = btn.dataset.mode;
+            modeDesc.textContent = modeDescriptions[gameMode];
+            updateBestScoreDisplay();
+        });
 
         function createParticles(x, y, color, count = 10) {
             for (let i = 0; i < count; i++) {
@@ -2664,6 +2822,12 @@
             maxComboElement.textContent = maxCombo;
             gameOverBestScoreElement.textContent = bestScore;
             gameOverDiv.style.display = 'block';
+            aiInfoElement.style.display = 'none';
+
+            // Auto-save neural model if training
+            if (gameMode === 'ai-neural') {
+                saveNeuralModel();
+            }
 
             playSound(200, 1.0);
         }
@@ -2737,6 +2901,14 @@
             gameOverDiv.style.display = 'none';
             pauseOverlay.style.display = 'none';
             comboDisplayElement.style.display = 'none';
+
+            // Mode-specific setup
+            aiInfoElement.style.display = (gameMode !== 'human') ? 'block' : 'none';
+            if (gameMode === 'ai-heuristic') {
+                resetHeuristicAI();
+            } else if (gameMode === 'ai-neural') {
+                resetNeuralAI();
+            }
 
             // Generate first wave colors and start
             generateWaveColors();
@@ -3084,6 +3256,21 @@
 
             // Draw power-ups
             powerUps.forEach(powerUp => {
+
+                // AI intercept marker
+                if (gameMode === 'ai-heuristic' && !gamePaused && !waveTransitioning && aiInterceptX !== null) {
+                    ctx.save();
+                    ctx.globalAlpha = 0.25 + Math.sin(Date.now() * 0.005) * 0.1;
+                    ctx.fillStyle = '#00c8d6';
+                    ctx.beginPath();
+                    ctx.arc(aiInterceptX, paddle.y + paddle.height / 2, 6, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = 'rgba(0, 200, 214, 0.4)';
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                    ctx.restore();
+                }
+
                 ctx.save();
 
                 // Pulsing effect
@@ -3125,12 +3312,346 @@
             });
         }
 
+        // =============================================
+        // AI FUNCTIONS — Heuristic + Neural
+        // =============================================
+
+        // --- Heuristic AI ---
+
+        function predictBallIntercept(ballObj) {
+            let bx = ballObj.x, by = ballObj.y;
+            let bdx = ballObj.dx, bdy = ballObj.dy;
+            const radius = ballObj.radius || ball.radius;
+            const targetY = paddle.y;
+            const maxSteps = 500;
+            let steps = 0;
+
+            while (by < targetY && steps < maxSteps) {
+                bx += bdx;
+                by += bdy;
+                if (bx - radius <= 0) { bx = radius; bdx = Math.abs(bdx); }
+                if (bx + radius >= canvas.width) { bx = canvas.width - radius; bdx = -Math.abs(bdx); }
+                if (by - radius <= 0) { by = radius; bdy = Math.abs(bdy); }
+                steps++;
+            }
+
+            const noise = (Math.random() - 0.5) * canvas.width * AI_HEURISTIC.precisionNoise * 2;
+            return Math.max(paddle.width / 2, Math.min(canvas.width - paddle.width / 2, bx + noise));
+        }
+
+        function findMostThreateningBall() {
+            let threats = [{ obj: ball, y: ball.y }];
+            activePowerUps.multiball.forEach(mb => {
+                threats.push({ obj: mb, y: mb.y });
+            });
+            threats.sort((a, b) => b.y - a.y);
+            return threats[0].obj;
+        }
+
+        function movePaddleToward(targetX) {
+            const centerX = targetX - paddle.width / 2;
+            const diff = centerX - paddle.x;
+            if (Math.abs(diff) < AI_HEURISTIC.paddleTargetSpeed * 0.5) {
+                paddle.x = centerX;
+            } else if (diff > 0) {
+                paddle.x += Math.min(AI_HEURISTIC.paddleTargetSpeed, diff);
+            } else {
+                paddle.x -= Math.min(AI_HEURISTIC.paddleTargetSpeed, Math.abs(diff));
+            }
+            paddle.x = Math.max(0, Math.min(canvas.width - paddle.width, paddle.x));
+        }
+
+        function updateHeuristicAI() {
+            if (gamePaused || waveTransitioning) return;
+
+            if (aiReactionCounter > 0) {
+                aiReactionCounter--;
+                movePaddleToward(aiTargetX);
+                return;
+            }
+            aiReactionCounter = Math.floor(Math.random() * AI_HEURISTIC.reactionFrames * 2);
+            if (Math.random() < 0.3) aiReactionCounter = 0;
+
+            const threat = findMostThreateningBall();
+            aiTargetX = predictBallIntercept(threat);
+            aiInterceptX = aiTargetX;
+            aiInterceptY = paddle.y;
+            movePaddleToward(aiTargetX);
+
+            if (canShootLaser && laserCooldown <= 0 && Math.random() < AI_HEURISTIC.laserAggression) {
+                const hasBricksAbove = bricks.some(b => b.visible && b.type !== 'unbreakable');
+                if (hasBricksAbove) {
+                    shootLaser();
+                }
+            }
+        }
+
+        function resetHeuristicAI() {
+            aiTargetX = canvas.width / 2;
+            aiReactionCounter = 0;
+            aiInterceptX = null;
+            aiInterceptY = null;
+        }
+
+        // --- Neural AI ---
+
+        function createNeuralModel() {
+            const model = tf.sequential();
+            model.add(tf.layers.dense({
+                units: AI_NEURAL.hiddenUnits1,
+                activation: 'relu',
+                inputShape: [AI_NEURAL.stateSize]
+            }));
+            model.add(tf.layers.dense({
+                units: AI_NEURAL.hiddenUnits2,
+                activation: 'relu'
+            }));
+            model.add(tf.layers.dense({
+                units: AI_NEURAL.actionSize,
+                activation: 'linear'
+            }));
+            model.compile({
+                optimizer: tf.train.adam(AI_NEURAL.learningRate),
+                loss: 'meanSquaredError'
+            });
+            return model;
+        }
+
+        function getNormalizedState() {
+            return [
+                ball.x / canvas.width,
+                ball.y / canvas.height,
+                ball.dx / ball.speed,
+                ball.dy / ball.speed,
+                paddle.x / canvas.width,
+                paddle.width / paddle.originalWidth
+            ];
+        }
+
+        function computeReward() {
+            let reward = 0;
+            const scoreDelta = score - aiPrevScore;
+            if (scoreDelta > 0) {
+                reward += scoreDelta * 0.01;
+            }
+            if (lives < aiPrevLives) {
+                reward -= 1.0;
+            }
+            if (ball.dy > 0 && ball.y > paddle.y - 60 && ball.y < paddle.y + 10) {
+                const distFromCenter = Math.abs(ball.x - (paddle.x + paddle.width / 2)) / (canvas.width / 2);
+                reward += (1 - distFromCenter) * 0.05;
+            }
+            aiPrevScore = score;
+            aiPrevLives = lives;
+            return reward;
+        }
+
+        async function selectNeuralAction() {
+            if (Math.random() < aiEpsilon) {
+                return Math.floor(Math.random() * AI_NEURAL.actionSize);
+            }
+            const state = getNormalizedState();
+            const stateTensor = tf.tensor2d([state]);
+            const qValues = aiModel.predict(stateTensor);
+            const action = (await qValues.argMax(1).data())[0];
+            stateTensor.dispose();
+            qValues.dispose();
+            return action;
+        }
+
+        function executeNeuralAction(action) {
+            switch (action) {
+                case 0:
+                    paddle.x -= AI_HEURISTIC.paddleTargetSpeed;
+                    break;
+                case 2:
+                    paddle.x += AI_HEURISTIC.paddleTargetSpeed;
+                    break;
+                case 1:
+                default:
+                    break;
+            }
+            paddle.x = Math.max(0, Math.min(canvas.width - paddle.width, paddle.x));
+        }
+
+        function storeExperience(state, action, reward, nextState) {
+            aiReplayBuffer.push({ state: [...state], action, reward, nextState: nextState ? [...nextState] : null });
+            if (aiReplayBuffer.length > AI_NEURAL.replayBufferSize) {
+                aiReplayBuffer.shift();
+            }
+        }
+
+        async function trainNeuralModel() {
+            if (aiReplayBuffer.length < AI_NEURAL.batchSize) return;
+            if (aiIsTraining) return;
+            aiIsTraining = true;
+
+            try {
+                const batch = [];
+                const indices = new Set();
+                while (indices.size < AI_NEURAL.batchSize) {
+                    indices.add(Math.floor(Math.random() * aiReplayBuffer.length));
+                }
+                indices.forEach(i => batch.push(aiReplayBuffer[i]));
+
+                const states = tf.tensor2d(batch.map(e => e.state));
+                const nextStates = tf.tensor2d(batch.map(e => e.nextState));
+
+                const currentQs = aiModel.predict(states);
+                const nextQs = aiTargetModel.predict(nextStates);
+                const nextMaxQs = nextQs.max(1);
+
+                const currentQsArray = await currentQs.array();
+                const nextMaxQsArray = await nextMaxQs.data();
+
+                const targets = currentQsArray.map((qValues, i) => {
+                    const target = [...qValues];
+                    target[batch[i].action] = batch[i].reward +
+                        (batch[i].nextState ? AI_NEURAL.gamma * nextMaxQsArray[i] : 0);
+                    return target;
+                });
+
+                const targetTensor = tf.tensor2d(targets);
+
+                const result = await aiModel.fit(states, targetTensor, {
+                    epochs: 1,
+                    verbose: 0
+                });
+
+                aiLastLoss = result.history.loss[0];
+
+                states.dispose();
+                nextStates.dispose();
+                currentQs.dispose();
+                nextQs.dispose();
+                targetTensor.dispose();
+
+                aiEpsilon = Math.max(AI_NEURAL.epsilonMin, aiEpsilon * AI_NEURAL.epsilonDecay);
+                aiStepCount++;
+                if (aiStepCount % AI_NEURAL.targetUpdateFreq === 0) {
+                    updateTargetModel();
+                }
+            } finally {
+                aiIsTraining = false;
+            }
+        }
+
+        function updateTargetModel() {
+            const weights = aiModel.getWeights();
+            const copies = weights.map(w => tf.clone(w));
+            aiTargetModel.setWeights(copies);
+            copies.forEach(w => w.dispose());
+        }
+
+        async function saveNeuralModel() {
+            try {
+                await aiModel.save('localstorage://' + AI_NEURAL.modelSaveKey);
+                localStorage.setItem(AI_NEURAL.trainingSaveKey, JSON.stringify({
+                    epsilon: aiEpsilon,
+                    episodeCount: aiEpisodeCount,
+                    stepCount: aiStepCount
+                }));
+            } catch (e) {
+                // Silent fail
+            }
+        }
+
+        async function loadNeuralModel() {
+            try {
+                aiModel = await tf.loadLayersModel('localstorage://' + AI_NEURAL.modelSaveKey);
+                aiModel.compile({ optimizer: tf.train.adam(AI_NEURAL.learningRate), loss: 'meanSquaredError' });
+                aiTargetModel = await tf.loadLayersModel('localstorage://' + AI_NEURAL.modelSaveKey);
+                aiTargetModel.compile({ optimizer: tf.train.adam(AI_NEURAL.learningRate), loss: 'meanSquaredError' });
+                const trainingData = JSON.parse(localStorage.getItem(AI_NEURAL.trainingSaveKey) || '{}');
+                aiEpsilon = trainingData.epsilon || AI_NEURAL.epsilon;
+                aiEpisodeCount = trainingData.episodeCount || 0;
+                aiStepCount = trainingData.stepCount || 0;
+                aiTrainingActive = true;
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        async function initNeuralAI() {
+            const loaded = await loadNeuralModel();
+            if (!loaded) {
+                aiModel = createNeuralModel();
+                aiTargetModel = createNeuralModel();
+                updateTargetModel();
+                aiEpisodeCount = 0;
+                aiStepCount = 0;
+            }
+            aiTrainingActive = true;
+            aiPrevScore = 0;
+            aiPrevLives = 3;
+        }
+
+        async function updateNeuralAI() {
+            if (gamePaused || waveTransitioning || !aiTrainingActive) return;
+
+            const currentState = getNormalizedState();
+            const reward = computeReward();
+
+            if (aiLastState !== null) {
+                storeExperience(aiLastState, aiLastAction, reward, currentState);
+            }
+
+            const action = await selectNeuralAction();
+            executeNeuralAction(action);
+
+            aiLastState = currentState;
+            aiLastAction = action;
+
+            aiFrameSkipCounter++;
+            if (aiFrameSkipCounter >= AI_NEURAL.trainInterval) {
+                aiFrameSkipCounter = 0;
+                await trainNeuralModel();
+            }
+
+            if (canShootLaser && laserCooldown <= 0 && Math.random() < 0.3) {
+                shootLaser();
+            }
+        }
+
+        function resetNeuralAI() {
+            aiReplayBuffer = [];
+            aiLastState = null;
+            aiLastAction = null;
+            aiFrameSkipCounter = 0;
+            aiEpisodeCount++;
+            aiPrevScore = 0;
+            aiPrevLives = 3;
+        }
+
+        function updateAIInfo() {
+            if (gameMode === 'human') return;
+            if (gameMode === 'ai-heuristic') {
+                aiInfoElement.textContent = 'AI (Smart) | Tracking ball trajectory';
+            } else if (gameMode === 'ai-neural') {
+                const eps = aiEpsilon.toFixed(2);
+                const ep = aiEpisodeCount;
+                const loss = aiLastLoss !== null ? aiLastLoss.toFixed(4) : '-';
+                aiInfoElement.textContent = `AI (Learning) | eps:${eps} | ep:${ep} | loss:${loss}`;
+            }
+        }
+
+        // =============================================
+        // END AI FUNCTIONS
+        // =============================================
+
         // FIXED: Proper game loop with pause handling
         function gameLoop() {
             if (!gameRunning) return;
 
             if (!gamePaused && !waveTransitioning) {
-                updatePaddle();
+                if (gameMode === 'human') {
+                    updatePaddle();
+                } else if (gameMode === 'ai-heuristic') {
+                    updateHeuristicAI();
+                } else if (gameMode === 'ai-neural') {
+                    updateNeuralAI();
+                }
                 updateBall();
                 updateLasers();
                 updatePowerUps();
@@ -3138,6 +3659,7 @@
                 updateAmbientParticles();
                 checkWaveComplete();
                 updateLiveStats();
+                updateAIInfo();
             }
 
             draw();
@@ -3155,6 +3677,16 @@
             gameOverDiv.style.display = 'none';
             restartGame();
         });
+
+        // Initialize AI modes
+        initNeuralAI();
+
+        // Auto-save neural model periodically
+        setInterval(async () => {
+            if (gameMode === 'ai-neural' && aiTrainingActive && aiModel) {
+                await saveNeuralModel();
+            }
+        }, 30000);
     </script>
 </body>
 </html>
